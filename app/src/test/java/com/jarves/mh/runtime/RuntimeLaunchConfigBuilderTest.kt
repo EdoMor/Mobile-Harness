@@ -110,4 +110,31 @@ class RuntimeLaunchConfigBuilderTest {
         assertEquals("deepseek-v4.1-flash", config.environment["ANTHROPIC_MODEL"])
         assertEquals("oc_sk_secret", config.environment["ANTHROPIC_AUTH_TOKEN"])
     }
+
+    @Test
+    fun openCodeGoSetsClaudeCodeEffortLevel() {
+        val config = RuntimeLaunchConfigBuilder.build(
+            ProviderProfile(ProviderKind.OPENCODE_GO, reasoningEffort = "max"),
+            authToken = "oc_sk_secret",
+        )
+
+        assertEquals("max", config.environment["CLAUDE_CODE_EFFORT_LEVEL"])
+    }
+
+    @Test
+    fun otherProvidersIgnoreStoredEffort() {
+        val config = RuntimeLaunchConfigBuilder.build(
+            ProviderProfile(ProviderKind.ANTHROPIC, reasoningEffort = "max"),
+            authToken = "secret",
+        )
+
+        assertNull(config.environment["CLAUDE_CODE_EFFORT_LEVEL"])
+    }
+
+    @Test
+    fun minimalEffortMapsToClaudeCodeLow() {
+        assertEquals("low", claudeCodeEffortLevel("minimal"))
+        assertEquals("max", claudeCodeEffortLevel(" MAX "))
+        assertNull(claudeCodeEffortLevel("none"))
+    }
 }
