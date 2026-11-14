@@ -474,6 +474,51 @@ class DshSettingsBuilderTest {
         assertTrue(route.headers.isEmpty())
         assertFalse(yaml, yaml.contains("headers:"))
     }
+
+    @Test
+    fun openCodeGoWritesSelectedReasoningEffortAndAdaptiveCompat() {
+        val profile = ProviderProfile(
+            ProviderKind.OPENCODE_GO,
+            reasoningEffort = "max",
+            reasoningEfforts = listOf("low", "high", "max"),
+        )
+        val yaml = buildDshSettings(DshRouteMapper.forProfile(profile), profile)
+
+        assertTrue(yaml, yaml.contains("reasoningEffort: 'max'"))
+        assertTrue(yaml, yaml.contains("forceAdaptiveThinking: true"))
+        assertTrue(yaml, yaml.contains("reasoningEfforts:"))
+        assertTrue(yaml, yaml.contains("low: 'low'"))
+        assertTrue(yaml, yaml.contains("high: 'high'"))
+        assertTrue(yaml, yaml.contains("max: 'max'"))
+        assertFalse(yaml, yaml.contains("oc_sk_"))
+    }
+
+    @Test
+    fun nonGoProfilesNeverWriteReasoningEffort() {
+        val profile = ProviderProfile(
+            ProviderKind.ANTHROPIC,
+            model = "claude-sonnet-4-6",
+            reasoningEffort = "max",
+            reasoningEfforts = listOf("high", "max"),
+        )
+        val yaml = buildDshSettings(DshRouteMapper.forProfile(profile), profile)
+
+        assertFalse(yaml, yaml.contains("reasoningEffort"))
+        assertFalse(yaml, yaml.contains("forceAdaptiveThinking"))
+    }
+
+    @Test
+    fun invalidOpenCodeGoEffortIsIgnored() {
+        val profile = ProviderProfile(
+            ProviderKind.OPENCODE_GO,
+            reasoningEffort = "none",
+            reasoningEfforts = listOf("none"),
+        )
+        val yaml = buildDshSettings(DshRouteMapper.forProfile(profile), profile)
+
+        assertFalse(yaml, yaml.contains("reasoningEffort"))
+        assertFalse(yaml, yaml.contains("forceAdaptiveThinking"))
+    }
 }
 
 class AgentProviderPresetTest {
