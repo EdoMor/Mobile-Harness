@@ -30,6 +30,7 @@ the generated `settings.yaml` and the Claude Code process environment.
 | 9 | No credential in `settings.yaml` | **PASS** | `grep -c oc_sk_` → `0`; only `apiKeyEnv: MH_DSH_API_KEY` |
 | 10 | No crash during the device session | **PASS** | Logcat: no `FATAL EXCEPTION` for `com.jarves.mh` |
 | 11 | Restored profiles and runtime to `Alto` | **PASS** | Both agents show `Alto`; final DSH turn wrote `reasoningEffort: 'high'` |
+| 12 | Internationalization | **PASS** | 7 locales have every new key; Arabic RTL and Greek LTR rendered on device |
 
 The selector is intentionally limited to `OPENCODE_GO`; other providers keep
 their existing behavior.
@@ -103,6 +104,29 @@ rewrote `settings.yaml` with `reasoningEffort: 'high'`, so the runtime matches
 the saved profile.
 
 ![DeepSeek Harness restored to Alto](2026-11-14-opencode-go-reasoning-effort-device/10-deepseek-restored-alto.png)
+
+### 2.11 Arabic (RTL) — Agent selector
+
+The selector mirrors correctly: `مستوى الاستدلال` with `منخفض / عالٍ / أقصى`.
+
+![Arabic Agent selector](2026-11-14-opencode-go-reasoning-effort-device/11-arabic-agent-rtl.png)
+
+### 2.12 Arabic (RTL) — chat chip and menu
+
+The chip and dropdown mirror and use the Arabic labels.
+
+![Arabic chat chip](2026-11-14-opencode-go-reasoning-effort-device/12-arabic-chat-rtl.png)
+
+![Arabic chat menu](2026-11-14-opencode-go-reasoning-effort-device/13-arabic-chat-menu-rtl.png)
+
+### 2.13 Greek (LTR, long labels) — Agent and chat
+
+Greek exercises the longest LTR labels; both the selector and the chat chip fit
+without clipping.
+
+![Greek Agent selector](2026-11-14-opencode-go-reasoning-effort-device/14-greek-agent-ltr.png)
+
+![Greek chat chip](2026-11-14-opencode-go-reasoning-effort-device/15-greek-chat-ltr.png)
 
 ---
 
@@ -194,6 +218,25 @@ Relevant tests:
 - `RuntimeLaunchConfigBuilderTest.openCodeGoSetsClaudeCodeEffortLevel`
 - `RuntimeLaunchConfigBuilderTest.chatSelectedEffortReachesClaudeCode`
 
+### 4.1 Localization check
+
+Every registered locale contains exactly one copy of the new keys:
+
+```text
+values       (English)   st_reasoning_effort, st_effort_minimal, st_effort_low,
+                         st_effort_medium, st_effort_high, st_effort_xhigh, st_effort_max
+values-es    (Spanish)   same keys
+values-ar    (Arabic)    same keys
+values-el    (Greek)     same keys
+values-hi    (Hindi)     same keys
+values-ru    (Russian)   same keys
+values-zh    (Chinese)   same keys
+```
+
+The new UI uses `stringResource(...)` for every label; only model IDs and
+provider names remain English by design. Arabic (RTL) and Greek (long LTR) were
+also rendered on device; see screenshots 11–15.
+
 ---
 
 ## 5. Notes
@@ -209,3 +252,6 @@ Relevant tests:
    was created.
 5. The test did not modify `OPENCODE_ZEN`, Antigravity, or the recovery
    contract.
+6. The feature is localized in all seven registered locales. The device was
+   checked in Spanish (LTR), Arabic (RTL), and Greek (long LTR); the app was
+   returned to Spanish after testing.
