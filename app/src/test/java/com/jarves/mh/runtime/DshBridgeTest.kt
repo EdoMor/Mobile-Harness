@@ -519,6 +519,57 @@ class DshSettingsBuilderTest {
         assertFalse(yaml, yaml.contains("reasoningEffort"))
         assertFalse(yaml, yaml.contains("forceAdaptiveThinking"))
     }
+
+    @Test
+    fun selectedOpenCodeGoEffortIsDeclaredEvenWithoutASavedCatalogList() {
+        val profile = ProviderProfile(ProviderKind.OPENCODE_GO, reasoningEffort = "high")
+        val yaml = buildDshSettings(DshRouteMapper.forProfile(profile), profile)
+
+        assertTrue(yaml, yaml.contains("reasoningEffort: 'high'"))
+        assertTrue(yaml, yaml.contains("          reasoningEfforts:"))
+        assertTrue(yaml, yaml.contains("            high: 'high'"))
+    }
+
+    @Test
+    fun openCodeGoSettingsMatchTheExpectedYamlShape() {
+        val profile = ProviderProfile(
+            ProviderKind.OPENCODE_GO,
+            reasoningEffort = "max",
+            reasoningEfforts = listOf("low", "high", "max"),
+        )
+        val route = withOpenCodeGoSession(
+            DshRouteMapper.forProfile(profile),
+            profile,
+            "6f1c9a0e-2b3d-4e5f-8a9b-0c1d2e3f4a5b",
+        )
+
+        assertEquals(
+            """
+            agent-default-model:
+              provider: opencode-go
+              model: 'deepseek-v4.1-flash'
+              reasoningEffort: 'max'
+            llm-pi-ai:
+              providers:
+                opencode-go:
+                  apiKeyEnv: MH_DSH_API_KEY
+                  api: anthropic-messages
+                  baseURL: 'https://opencode.ai/inference/go/anthropic'
+                  compat:
+                    forceAdaptiveThinking: true
+                  headers:
+                    x-opencode-session: 'ses_6f1c9a0e2b3d4e5f8a9b0c1d2e3f4a5b'
+                  models:
+                    - id: 'deepseek-v4.1-flash'
+                      reasoningEfforts:
+                        low: 'low'
+                        high: 'high'
+                        max: 'max'
+
+            """.trimIndent(),
+            buildDshSettings(route, profile),
+        )
+    }
 }
 
 class AgentProviderPresetTest {
