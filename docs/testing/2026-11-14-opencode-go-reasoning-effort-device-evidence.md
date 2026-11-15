@@ -29,6 +29,7 @@ the generated `settings.yaml` and the Claude Code process environment.
 | 8 | Claude Code receives the selected effort | **PASS** | Chat `Máximo`; “Responde OK” → `OK` (13 s); env `CLAUDE_CODE_EFFORT_LEVEL=max` |
 | 9 | No credential in `settings.yaml` | **PASS** | `grep -c oc_sk_` → `0`; only `apiKeyEnv: MH_DSH_API_KEY` |
 | 10 | No crash during the device session | **PASS** | Logcat: no `FATAL EXCEPTION` for `com.jarves.mh` |
+| 11 | Restored profiles and runtime to `Alto` | **PASS** | Both agents show `Alto`; final DSH turn wrote `reasoningEffort: 'high'` |
 
 The selector is intentionally limited to `OPENCODE_GO`; other providers keep
 their existing behavior.
@@ -89,12 +90,19 @@ Claude Code answered with the same provider/model and the chip set to `Máximo`.
 
 ![Claude Code with maximum effort](2026-11-14-opencode-go-reasoning-effort-device/08-claude-chat-max-response.png)
 
-### 2.9 Restored state
+### 2.9 Restored state — Claude Code
 
-After testing, both agent profiles were returned to `Alto` to avoid leaving the
-device on the highest effort.
+Claude Code was returned to `Alto`.
 
-![Restored to Alto](2026-11-14-opencode-go-reasoning-effort-device/09-restored-alto.png)
+![Claude Code restored to Alto](2026-11-14-opencode-go-reasoning-effort-device/09-restored-alto.png)
+
+### 2.10 Restored state — DeepSeek Harness
+
+DeepSeek Harness was also returned to `Alto`. A final short turn completed and
+rewrote `settings.yaml` with `reasoningEffort: 'high'`, so the runtime matches
+the saved profile.
+
+![DeepSeek Harness restored to Alto](2026-11-14-opencode-go-reasoning-effort-device/10-deepseek-restored-alto.png)
 
 ---
 
@@ -128,6 +136,19 @@ llm-pi-ai:
 ```
 
 The key remains only in the process environment (`MH_DSH_API_KEY`).
+
+After restoring the chat to `Alto` and sending one short DSH turn, the same file
+was rewritten to:
+
+```yaml
+agent-default-model:
+  provider: opencode-go
+  model: 'deepseek-v4.1-flash'
+  reasoningEffort: 'high'
+```
+
+This confirms the selector changes the runtime in both directions, not only on
+the first save.
 
 ### 3.2 Claude Code process environment
 
