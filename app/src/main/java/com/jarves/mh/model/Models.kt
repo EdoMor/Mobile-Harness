@@ -174,6 +174,32 @@ fun preferredReasoningEffort(efforts: List<String>, current: String = ""): Strin
         ?: normalized.lastOrNull().orEmpty()
 }
 
+/**
+ * Levels known before the first catalog refresh. The live catalog replaces these,
+ * but the chat control must work for a saved profile even before discovery runs.
+ */
+fun fallbackReasoningEfforts(kind: ProviderKind, model: String): List<String> {
+    if (!providerSupportsReasoningEffort(kind)) return emptyList()
+    return when (model) {
+        "deepseek-v4.1-flash", "kimi-k3.1-pro" -> listOf("low", "high", "max")
+        "gpt-6-luna", "claude-haiku-5-5" -> listOf("low", "medium", "high", "xhigh", "max")
+        else -> emptyList()
+    }
+}
+
+/**
+ * Applies a chat- or settings-selected level to this profile. Returns null when the
+ * provider is not eligible, the level is unknown, or the model does not offer it.
+ */
+fun ProviderProfile.withSelectedReasoningEffort(effort: String): ProviderProfile? {
+    if (!providerSupportsReasoningEffort(kind)) return null
+    val allowed = normalizedReasoningEfforts(reasoningEfforts)
+        .ifEmpty { fallbackReasoningEfforts(kind, model) }
+    val selected = normalizedReasoningEfforts(listOf(effort)).firstOrNull() ?: return null
+    if (selected !in allowed) return null
+    return copy(reasoningEffort = selected, reasoningEfforts = allowed)
+}
+
 data class ProviderProfile(
     val kind: ProviderKind,
     val baseUrl: String = kind.defaultBaseUrl,

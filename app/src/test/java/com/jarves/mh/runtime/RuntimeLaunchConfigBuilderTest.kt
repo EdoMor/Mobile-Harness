@@ -2,6 +2,7 @@ package com.jarves.mh.runtime
 
 import com.jarves.mh.model.ProviderKind
 import com.jarves.mh.model.ProviderProfile
+import com.jarves.mh.model.withSelectedReasoningEffort
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -136,5 +137,13 @@ class RuntimeLaunchConfigBuilderTest {
         assertEquals("low", claudeCodeEffortLevel("minimal"))
         assertEquals("max", claudeCodeEffortLevel(" MAX "))
         assertNull(claudeCodeEffortLevel("none"))
+    }
+
+    @Test
+    fun chatSelectedEffortReachesClaudeCode() {
+        val profile = ProviderProfile(ProviderKind.OPENCODE_GO).withSelectedReasoningEffort("low")!!
+        val config = RuntimeLaunchConfigBuilder.build(profile, authToken = "oc_sk_secret")
+
+        assertEquals("low", config.environment["CLAUDE_CODE_EFFORT_LEVEL"])
     }
 }

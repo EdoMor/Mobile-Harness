@@ -9,6 +9,7 @@ import com.jarves.mh.model.defaultDshApiForProvider
 import com.jarves.mh.model.inferredDshApiForUrl
 import com.jarves.mh.model.providerProtocolForAgent
 import com.jarves.mh.model.providersForAgent
+import com.jarves.mh.model.withSelectedReasoningEffort
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -569,6 +570,15 @@ class DshSettingsBuilderTest {
             """.trimIndent(),
             buildDshSettings(route, profile),
         )
+    }
+
+    @Test
+    fun chatSelectedEffortReachesDshSettings() {
+        val profile = ProviderProfile(ProviderKind.OPENCODE_GO).withSelectedReasoningEffort("max")!!
+        val yaml = buildDshSettings(DshRouteMapper.forProfile(profile), profile)
+
+        assertTrue(yaml, yaml.contains("reasoningEffort: 'max'"))
+        assertTrue(yaml, yaml.contains("            max: 'max'"))
     }
 }
 

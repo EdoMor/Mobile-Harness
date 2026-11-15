@@ -101,6 +101,7 @@ import com.jarves.mh.model.DSH_PROTOCOL_PROVIDERS
 import com.jarves.mh.model.ProviderKind
 import com.jarves.mh.model.ProviderProfile
 import com.jarves.mh.model.defaultDshApiForProvider
+import com.jarves.mh.model.fallbackReasoningEfforts
 import com.jarves.mh.model.inferredDshApiForUrl
 import com.jarves.mh.model.normalizedReasoningEfforts
 import com.jarves.mh.model.preferredReasoningEffort
@@ -2273,10 +2274,10 @@ private fun defaultModelsForProvider(kind: ProviderKind, context: android.conten
         DiscoveredModel(ProviderKind.OPENCODE_ZEN.defaultModel, context.getString(R.string.md_model_opencode_default)),
     )
     ProviderKind.OPENCODE_GO -> listOf(
-        DiscoveredModel("deepseek-v4.1-flash", "DeepSeek V4.1 Flash", reasoningEfforts = listOf("low", "high", "max")),
-        DiscoveredModel("kimi-k3.1-pro", "Kimi K3.1 Pro", reasoningEfforts = listOf("low", "high", "max")),
-        DiscoveredModel("gpt-6-luna", "GPT-6 Luna", reasoningEfforts = listOf("low", "medium", "high", "xhigh", "max")),
-        DiscoveredModel("claude-haiku-5-5", "Claude Haiku 5.5", reasoningEfforts = listOf("low", "medium", "high", "xhigh", "max")),
+        DiscoveredModel("deepseek-v4.1-flash", "DeepSeek V4.1 Flash", reasoningEfforts = fallbackReasoningEfforts(kind, "deepseek-v4.1-flash")),
+        DiscoveredModel("kimi-k3.1-pro", "Kimi K3.1 Pro", reasoningEfforts = fallbackReasoningEfforts(kind, "kimi-k3.1-pro")),
+        DiscoveredModel("gpt-6-luna", "GPT-6 Luna", reasoningEfforts = fallbackReasoningEfforts(kind, "gpt-6-luna")),
+        DiscoveredModel("claude-haiku-5-5", "Claude Haiku 5.5", reasoningEfforts = fallbackReasoningEfforts(kind, "claude-haiku-5-5")),
     )
     ProviderKind.NVIDIA_NIM -> listOf(
         DiscoveredModel(ProviderKind.NVIDIA_NIM.defaultModel, "Qwen 2.5 Coder 32B"),
