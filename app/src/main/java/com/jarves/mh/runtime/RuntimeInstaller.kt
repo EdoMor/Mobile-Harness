@@ -32,6 +32,15 @@ data class InstalledRuntime(
     val rootfs: File,
 )
 
+internal fun guestRuntimePath(androidReady: Boolean): String {
+    val basePath = "/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    return if (androidReady) {
+        "/opt/gradle/gradle-8.14.3/bin:/root/android-sdk/build-tools/35.0.0:/root/android-sdk/cmdline-tools/latest/bin:$basePath"
+    } else {
+        basePath
+    }
+}
+
 data class RuntimeInstallProgress(
     val message: String,
     val fraction: Float,
@@ -1596,16 +1605,13 @@ class RuntimeInstaller(private val context: Context) {
             environment = buildMap {
                 put("HOME", "/root")
                 val androidReady = File(rootfs, "root/.pocket-android-tools-version").readTextOrNull() == ANDROID_TOOLS_VERSION
-                val basePath = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+                put("PATH", guestRuntimePath(androidReady))
                 if (androidReady) {
                     put("ANDROID_HOME", "/root/android-sdk")
                     put("ANDROID_SDK_ROOT", "/root/android-sdk")
                     put("GRADLE_HOME", "/opt/gradle/gradle-8.14.3")
                     put("GRADLE_USER_HOME", "/root/.gradle")
                     put("ORG_GRADLE_PROJECT_android.aapt2FromMavenOverride", "/root/android-sdk/build-tools/35.0.0/aapt2")
-                    put("PATH", "/opt/gradle/gradle-8.14.3/bin:/root/android-sdk/build-tools/35.0.0:/root/android-sdk/cmdline-tools/latest/bin:$basePath")
-                } else {
-                    put("PATH", basePath)
                 }
                 put("LANG", "C.UTF-8")
                 put("TERM", "xterm-256color")

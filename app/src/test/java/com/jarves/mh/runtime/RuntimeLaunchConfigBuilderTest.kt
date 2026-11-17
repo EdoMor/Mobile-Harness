@@ -10,6 +10,18 @@ import org.junit.Test
 
 class RuntimeLaunchConfigBuilderTest {
     @Test
+    fun githubCommandsAreAvailableWithoutInteractivePrompts() {
+        val config = RuntimeLaunchConfigBuilder.build(
+            ProviderProfile(ProviderKind.CUSTOM, "https://example.test", "model", true),
+            authToken = "test-token",
+        )
+
+        assertEquals("1", config.environment["GH_PROMPT_DISABLED"])
+        assertEquals("1", config.environment["GH_NO_UPDATE_NOTIFIER"])
+        assertEquals("0", config.environment["GIT_TERMINAL_PROMPT"])
+    }
+
+    @Test
     fun gatewayProfileUsesCustomBaseUrlAndModel() {
         val config = RuntimeLaunchConfigBuilder.build(
             ProviderProfile(ProviderKind.LLM_ROUTER, "https://gateway.example/", "model-a", true),

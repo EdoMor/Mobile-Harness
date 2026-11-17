@@ -61,6 +61,11 @@ object RuntimeLaunchConfigBuilder {
     fun build(profile: ProviderProfile, authToken: String? = null, localGatewayUrl: String? = null): RuntimeLaunchConfig {
         val environment = linkedMapOf(
             "DISABLE_AUTOUPDATER" to "1",
+            // GitHub CLI is installed in the shared PRoot home. Keep authenticated Git
+            // operations non-interactive so missing credentials fail clearly instead of hanging.
+            "GH_PROMPT_DISABLED" to "1",
+            "GH_NO_UPDATE_NOTIFIER" to "1",
+            "GIT_TERMINAL_PROMPT" to "0",
             // Skip telemetry, error reporting and other background network calls. Each one costs
             // noticeable startup time inside PRoot, and none are needed on device.
             "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC" to "1",
