@@ -32,6 +32,15 @@ data class InstalledRuntime(
     val rootfs: File,
 )
 
+internal fun guestRuntimePath(androidReady: Boolean): String {
+    val basePath = "/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    return if (androidReady) {
+        "/opt/gradle/gradle-8.14.3/bin:/root/android-sdk/build-tools/35.0.0:/root/android-sdk/cmdline-tools/latest/bin:$basePath"
+    } else {
+        basePath
+    }
+}
+
 data class RuntimeInstallProgress(
     val message: String,
     val fraction: Float,
@@ -194,7 +203,7 @@ class RuntimeInstaller(private val context: Context) {
                 validate = ::isValidCoreRootfs,
             )
             writeResolver()
-            if (archive.parentFile == downloads) archive.delete()
+            archive.delete()
         }
 
         check(ensureRootfsCompatibilityLinks()) { "Core runtime has an invalid Linux filesystem layout" }
@@ -964,7 +973,7 @@ class RuntimeInstaller(private val context: Context) {
         onProgress(RuntimeInstallProgress(message, to * 0.8f + from * 0.2f, indeterminate = true))
         extractZstdTar(archive, rootfs)
         stripMacosMetadataArtifacts(rootfs)
-        if (archive.parentFile == downloads) archive.delete()
+        archive.delete()
         onProgress(RuntimeInstallProgress(str(R.string.rt_install_bundle_tools_installed, bundle.label), to))
     }
 
@@ -1004,10 +1013,10 @@ class RuntimeInstaller(private val context: Context) {
         to: Float,
         onProgress: suspend (RuntimeInstallProgress) -> Unit,
     ): File {
-        downloads.mkdirs()
-        val destination = File(downloads, bundle.fileName)
         val useEmbedded = preferEmbedded || BuildConfig.OFFLINE_RUNTIME_BUNDLES
         if (useEmbedded) {
+            downloads.mkdirs()
+            val destination = File(downloads, bundle.fileName)
             val loadingLabel = str(R.string.rt_install_loading_bundle, bundle.label)
             onProgress(RuntimeInstallProgress(loadingLabel, from, 0, bundle.compressedBytes))
             val temporary = File(downloads, "${bundle.fileName}.part")
@@ -1034,9 +1043,10 @@ class RuntimeInstaller(private val context: Context) {
             return destination
         }
 
+        val destination = runtimeBundleDownloadFile(downloads, context.noBackupFilesDir, bundle.label, bundle.fileName)
         val url = "${BuildConfig.RUNTIME_RELEASE_BASE_URL}/${bundle.fileName}"
         val downloadingLabel = str(R.string.rt_install_downloading_bundle, bundle.label)
-        downloadVerified(url, destination, bundle.sha256) { downloaded, total ->
+        downloadVerified(url, destination, bundle.sha256, expectedBytes = bundle.compressedBytes) { downloaded, total ->
             val ratio = if (total > 0) downloaded.toFloat() / total else 0f
             onProgress(RuntimeInstallProgress(downloadingLabel, from + ratio * (to - from), downloaded, total.takeIf { it > 0 }))
         }
@@ -1595,16 +1605,13 @@ class RuntimeInstaller(private val context: Context) {
             environment = buildMap {
                 put("HOME", "/root")
                 val androidReady = File(rootfs, "root/.pocket-android-tools-version").readTextOrNull() == ANDROID_TOOLS_VERSION
-                val basePath = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+                put("PATH", guestRuntimePath(androidReady))
                 if (androidReady) {
                     put("ANDROID_HOME", "/root/android-sdk")
                     put("ANDROID_SDK_ROOT", "/root/android-sdk")
                     put("GRADLE_HOME", "/opt/gradle/gradle-8.14.3")
                     put("GRADLE_USER_HOME", "/root/.gradle")
                     put("ORG_GRADLE_PROJECT_android.aapt2FromMavenOverride", "/root/android-sdk/build-tools/35.0.0/aapt2")
-                    put("PATH", "/opt/gradle/gradle-8.14.3/bin:/root/android-sdk/build-tools/35.0.0:/root/android-sdk/cmdline-tools/latest/bin:$basePath")
-                } else {
-                    put("PATH", basePath)
                 }
                 put("LANG", "C.UTF-8")
                 put("TERM", "xterm-256color")
@@ -1857,14 +1864,18 @@ printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decis
         destination: File,
         expectedChecksum: String,
         algorithm: String = "SHA-256",
+        expectedBytes: Long? = null,
         onBytes: suspend (downloaded: Long, total: Long) -> Unit,
     ) {
         destination.parentFile?.mkdirs()
-        if (destination.isFile && digest(destination, algorithm).equals(expectedChecksum, ignoreCase = true)) {
+        val temporary = File(destination.parentFile, "${destination.name}.part")
+        val alreadyDownloaded = reuseVerifiedDownload(destination, temporary, expectedBytes) { file ->
+            digest(file, algorithm).equals(expectedChecksum, ignoreCase = true)
+        }
+        if (alreadyDownloaded) {
             onBytes(destination.length(), destination.length())
             return
         }
-        val temporary = File(destination.parentFile, "${destination.name}.part")
         var existing = temporary.takeIf(File::isFile)?.length() ?: 0L
         val connection = URL(url).openConnection() as HttpURLConnection
         connection.connectTimeout = 20_000

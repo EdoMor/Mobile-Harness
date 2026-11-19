@@ -9,6 +9,8 @@ import com.jarves.mh.model.RuntimeEvent
 import com.jarves.mh.model.RuntimeRecoveryContext
 import com.jarves.mh.model.RuntimeRecoveryProfile
 import com.jarves.mh.model.ToolRequest
+import com.jarves.mh.model.providerSupportsReasoningEffort
+import java.util.Locale
 import kotlinx.coroutines.flow.Flow
 
 data class RuntimeLaunchConfig(
@@ -59,6 +61,11 @@ object RuntimeLaunchConfigBuilder {
     fun build(profile: ProviderProfile, authToken: String? = null, localGatewayUrl: String? = null): RuntimeLaunchConfig {
         val environment = linkedMapOf(
             "DISABLE_AUTOUPDATER" to "1",
+            // GitHub CLI is installed in the shared PRoot home. Keep authenticated Git
+            // operations non-interactive so missing credentials fail clearly instead of hanging.
+            "GH_PROMPT_DISABLED" to "1",
+            "GH_NO_UPDATE_NOTIFIER" to "1",
+            "GIT_TERMINAL_PROMPT" to "0",
             // Skip telemetry, error reporting and other background network calls. Each one costs
             // noticeable startup time inside PRoot, and none are needed on device.
             "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC" to "1",
@@ -118,10 +125,25 @@ object RuntimeLaunchConfigBuilder {
                 }
             }
         }
+        if (providerSupportsReasoningEffort(profile.kind)) {
+            claudeCodeEffortLevel(profile.reasoningEffort)?.let { effort ->
+                environment["CLAUDE_CODE_EFFORT_LEVEL"] = effort
+            }
+        }
         return RuntimeLaunchConfig(
             executable = "/usr/local/bin/claude",
             arguments = listOf("-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose"),
             environment = environment,
         )
+    }
+}
+
+/** Claude Code speaks low..max; map the app's extra low level and drop anything else. */
+internal fun claudeCodeEffortLevel(effort: String): String? {
+    val normalized = effort.trim().lowercase(Locale.ROOT)
+    return when (normalized) {
+        "minimal" -> "low"
+        "low", "medium", "high", "xhigh", "max" -> normalized
+        else -> null
     }
 }

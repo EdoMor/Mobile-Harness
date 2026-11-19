@@ -54,6 +54,7 @@ import com.jarves.mh.model.WorkspaceEntry
 import com.jarves.mh.model.projectSlug
 import com.jarves.mh.model.generateQuickChatIdentity
 import com.jarves.mh.model.providerProtocolForAgent
+import com.jarves.mh.model.withSelectedReasoningEffort
 import com.jarves.mh.network.ConnectionValidation
 import com.jarves.mh.network.ModelDiscoveryResult
 import com.jarves.mh.network.ProviderApiClient
@@ -2912,6 +2913,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Applies a level selected from the chat composer to the active provider profile. */
+    fun setReasoningEffort(effort: String) {
+        val current = _state.value
+        val updated = current.provider.withSelectedReasoningEffort(effort) ?: return
+        preferences.saveProvider(updated, current.agentKind)
+        _state.update {
+            it.copy(
+                provider = updated,
+                // A manual retry is a fresh turn; let it use the level the user just chose.
+                pendingRetryRequest = it.pendingRetryRequest?.copy(provider = updated),
+            )
+        }
+    }
+
     fun refreshAntigravityModels() {
         if (_state.value.antigravityModelsLoading || !installer.isAgentInstalled(AgentKind.ANTIGRAVITY)) return
         _state.update { it.copy(antigravityModelsLoading = true) }
@@ -3866,6 +3881,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         githubAuthProcess = null
                         outputFile.delete()
                     }
+                    ensureGitHubGitCredentialHelper()
                     githubAccountLogin() ?: error(str(R.string.vm_github_account_unknown))
                 }
             }
@@ -3980,14 +3996,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             preferences.githubLogin = ""
             _state.update { it.copy(githubAuthStatus = GitHubAuthStatus.DISCONNECTED, githubLogin = null) }
         } else {
+            val gitSetupError = runCatching { ensureGitHubGitCredentialHelper() }.exceptionOrNull()?.message
             preferences.githubLogin = login
             _state.update {
                 it.copy(
                     githubAuthStatus = GitHubAuthStatus.CONNECTED,
                     githubLogin = login,
-                    githubMessage = str(R.string.vm_github_connected_as, login),
+                    githubMessage = if (gitSetupError.isNullOrBlank()) {
+                        str(R.string.vm_github_connected_as, login)
+                    } else {
+                        "GitHub connected as $login, but Git push setup failed: ${gitSetupError.take(180)}"
+                    },
                 )
             }
+        }
+    }
+
+    private fun ensureGitHubGitCredentialHelper() {
+        val (exit, output) = runGitHubCli(listOf("auth", "setup-git", "--hostname", "github.com"))
+        check(exit == 0) {
+            output.lineSequence().lastOrNull { it.isNotBlank() }
+                ?: "Could not configure GitHub authentication for Git operations."
         }
     }
 

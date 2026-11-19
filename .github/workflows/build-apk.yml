@@ -1,0 +1,65 @@
+name: Build debug APK
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      AGY_BUNDLE: pocketdev-agy-arm64-2026.09.1.tar.zst
+      AGY_BUNDLE_SHA256: a659ab9188956fc4721ca86fb21b5118e0e489f47a5e02ae6b4f2fb423659d78
+      AGY_BUNDLE_URL: https://github.com/techjarves/Mobile-Harness/releases/download/runtime-2026.09.4
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # The runner image ships the Android SDK; only add what this project pins.
+      - name: Install NDK and CMake
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" --install "ndk;28.2.13676358" "cmake;3.22.1" "platforms;android-36" > /dev/null
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # The Antigravity overlay is always loaded from the APK assets, so bundle it
+      # like the official release does (checksum-pinned against RuntimeInstaller).
+      - name: Fetch bundled Antigravity runtime
+        run: |
+          mkdir -p dist/runtime-bundles
+          curl -fL --retry 3 -o "dist/runtime-bundles/$AGY_BUNDLE" "$AGY_BUNDLE_URL/$AGY_BUNDLE"
+          echo "$AGY_BUNDLE_SHA256  dist/runtime-bundles/$AGY_BUNDLE" | sha256sum -c -
+
+      - name: Unit tests
+        run: ./gradlew --no-daemon testOnlineDebugUnitTest
+
+      - name: Assemble online debug APK
+        run: ./gradlew --no-daemon assembleOnlineDebug
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mobile-harness-online-debug-${{ github.sha }}
+          path: app/build/outputs/apk/online/debug/*.apk
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: test-reports
+          path: app/build/reports/tests/
+          if-no-files-found: ignore
