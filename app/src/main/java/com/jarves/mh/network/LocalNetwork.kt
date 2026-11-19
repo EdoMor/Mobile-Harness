@@ -74,9 +74,11 @@ object LocalNetwork {
         return value.takeIf { it in 0..0xFFFFFFFFL }
     }
 
-    private fun isLocalAddress(address: InetAddress): Boolean =
-        address.isLoopbackAddress || address.isLinkLocalAddress || address.isSiteLocalAddress ||
-            isLocalHost(address.hostAddress ?: return false)
+    private fun isLocalAddress(address: InetAddress): Boolean {
+        if (address.isLoopbackAddress || address.isLinkLocalAddress || address.isSiteLocalAddress) return true
+        val hostAddress = address.hostAddress ?: return false
+        return isLocalHost(hostAddress)
+    }
 
     private fun isLocalIpv6(host: String): Boolean =
         host == "::1" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe8") ||
