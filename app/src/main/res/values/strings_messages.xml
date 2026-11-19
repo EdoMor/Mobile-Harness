@@ -169,6 +169,7 @@
     <string name="vm_using_key">Using %1$s</string>
     <string name="vm_transport_reconnecting">Connection lost. Reconnecting…</string>
     <string name="vm_recovery_reconnecting">Connection lost. Reconnecting…</string>
+    <string name="vm_recovery_continuing">Turn limit reached. Continuing…</string>
     <string name="vm_recovery_attempt">Attempt %1$d of %2$d</string>
     <string name="vm_recovery_exhausted">Could not reconnect</string>
     <string name="vm_recovery_retry">Retry</string>

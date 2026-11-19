@@ -53,10 +53,14 @@ val DSH_RECOVERY_PROFILE = RuntimeRecoveryProfile(
     supportsTurnCheckpoint = false,
 )
 
+/**
+ * Claude Code persists every conversation and reloads it with `--resume`, and the bridge
+ * tracks each tool call until its result arrives, so it knows whether a tool was cut off.
+ */
 val CLAUDE_RECOVERY_PROFILE = RuntimeRecoveryProfile(
-    canResumePersisted = false,
+    canResumePersisted = true,
     reportsToolActivity = true,
-    reportsInterruptedToolOutcome = false,
+    reportsInterruptedToolOutcome = true,
     supportsTurnCheckpoint = false,
 )
 
@@ -66,6 +70,9 @@ val ANTIGRAVITY_RECOVERY_PROFILE = RuntimeRecoveryProfile(
     reportsInterruptedToolOutcome = false,
     supportsTurnCheckpoint = false,
 )
+
+const val TURN_LIMIT_CONTINUATION_INSTRUCTION =
+    "You reached the turn limit for a single run before finishing. Continue the same task from where you stopped. Do not redo steps that already completed; check the workspace if you are unsure what is done."
 
 const val DSH_CONTINUATION_INSTRUCTION =
     "The previous attempt was interrupted by a network error. Continue the same task from where it stopped. Do not repeat tool calls that already have results. Before retrying a side-effecting action whose result is missing, inspect the workspace and verify whether it already happened."

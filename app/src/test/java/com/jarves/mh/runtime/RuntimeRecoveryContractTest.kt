@@ -24,12 +24,50 @@ class RuntimeRecoveryContractTest {
     }
 
     @Test
-    fun claudeCannotAutoResumeAfterTools() {
-        // Claude has no --resume implementation: once tools ran, the outcome of an
-        // interrupted tool is unknown, so only a manual retry is safe.
+    fun claudeCanResumePersistedAndReportsInterruptedTools() {
+        assertEquals(true, CLAUDE_RECOVERY_PROFILE.canResumePersisted)
+        assertEquals(true, CLAUDE_RECOVERY_PROFILE.reportsInterruptedToolOutcome)
+    }
+
+    @Test
+    fun claudeWithoutTranscriptRequiresManualAfterTools() {
+        // No persisted conversation to reload, and tools ran: only a manual retry is safe.
         assertEquals(
             RecoveryDecision.MANUAL_RETRY_REQUIRED,
             RuntimeRecoveryPolicy.decide(CLAUDE_RECOVERY_PROFILE, context(tools = true)),
+        )
+    }
+
+    @Test
+    fun claudeResumesTranscriptAfterToolsWhenNoToolWasCutOff() {
+        // e.g. the turn limit: every tool call has its result in the transcript.
+        assertEquals(
+            RecoveryDecision.RESUME_PERSISTED,
+            RuntimeRecoveryPolicy.decide(
+                CLAUDE_RECOVERY_PROFILE,
+                context(handle = "conversation-1", tools = true, outcomeKnown = true),
+            ),
+        )
+    }
+
+    @Test
+    fun claudeRequiresManualWhenAToolWasCutOffMidRun() {
+        // The process died between a tool call and its result: the side effect may or
+        // may not have happened, so resuming automatically could repeat it.
+        assertEquals(
+            RecoveryDecision.MANUAL_RETRY_REQUIRED,
+            RuntimeRecoveryPolicy.decide(
+                CLAUDE_RECOVERY_PROFILE,
+                context(handle = "conversation-1", tools = true, outcomeKnown = false),
+            ),
+        )
+    }
+
+    @Test
+    fun claudeResumesTranscriptBeforeTools() {
+        assertEquals(
+            RecoveryDecision.RESUME_PERSISTED,
+            RuntimeRecoveryPolicy.decide(CLAUDE_RECOVERY_PROFILE, context(handle = "conversation-1")),
         )
     }
 
@@ -79,13 +117,13 @@ class RuntimeRecoveryContractTest {
         assertEquals(true, canAutoRestartWithoutTools(context(tools = false)))
     }
 
-    private fun context(tools: Boolean = false, handle: String? = null) = RuntimeRecoveryContext(
+    private fun context(tools: Boolean = false, handle: String? = null, outcomeKnown: Boolean = false) = RuntimeRecoveryContext(
         sessionId = "session-1",
         inPlaceContinuationAvailable = false,
         persistedHandle = handle,
         toolsExecuted = tools,
         mutatingToolsExecuted = tools,
-        interruptedToolOutcomeKnown = false,
+        interruptedToolOutcomeKnown = outcomeKnown,
         checkpointAvailable = false,
         userStopped = false,
     )

@@ -6357,7 +6357,11 @@ private fun RecoveryBanner(
     val mode = recoveryBannerMode(recovery)
     val label = recoveryBannerLabel(
         recovery = recovery,
-        reconnectingText = stringResource(R.string.vm_recovery_reconnecting),
+        reconnectingText = if (isTurnLimitFailure(recovery?.reason.orEmpty())) {
+            stringResource(R.string.vm_recovery_continuing)
+        } else {
+            stringResource(R.string.vm_recovery_reconnecting)
+        },
         attemptTemplate = stringResource(R.string.vm_recovery_attempt),
         bannerTemplate = stringResource(R.string.vm_recovery_banner_attempt),
         exhaustedText = stringResource(R.string.vm_recovery_exhausted),

@@ -61,6 +61,7 @@ import com.jarves.mh.network.ProviderApiClient
 import com.jarves.mh.network.GitHubRepository
 import com.jarves.mh.runtime.ClaudeRuntimeBridge
 import com.jarves.mh.runtime.DSH_CONTINUATION_INSTRUCTION
+import com.jarves.mh.runtime.TURN_LIMIT_CONTINUATION_INSTRUCTION
 import com.jarves.mh.runtime.DshRuntimeBridge
 import com.jarves.mh.runtime.AgentRegistry
 import com.jarves.mh.runtime.RecoveryAction
@@ -258,9 +259,52 @@ internal fun isTransportFailure(reason: String): Boolean {
     val value = reason.lowercase()
     val transport = "connection error" in value || "transport" in value
     if (!transport) return false
-    val authish = listOf("api key", "authentication", "401", "403", "429", "quota", "rate limit", "expired")
-    return authish.none { it in value }
+    return NON_RETRYABLE_FAILURE_MARKERS.none { it in value }
 }
+
+/** Credential, quota and rate-limit rejections: retrying cannot succeed and may spend quota. */
+private val NON_RETRYABLE_FAILURE_MARKERS =
+    listOf("api key", "authentication", "401", "403", "429", "quota", "rate limit", "expired")
+
+private val TRANSIENT_PROVIDER_FAILURE_MARKERS = listOf(
+    "overloaded",
+    "api error: 500", "api error: 502", "api error: 503", "api error: 504", "api error: 529",
+    "internal server error", "bad gateway", "service unavailable", "gateway timeout",
+    "request timed out", "etimedout", "econnreset", "socket hang up", "fetch failed",
+)
+
+/**
+ * True when a provider failed in a way that is temporary by nature: an overloaded or
+ * erroring server, or a request that timed out or had its socket reset.
+ */
+internal fun isTransientProviderFailure(reason: String): Boolean {
+    val value = reason.lowercase()
+    if (TRANSIENT_PROVIDER_FAILURE_MARKERS.none { it in value }) return false
+    return NON_RETRYABLE_FAILURE_MARKERS.none { it in value }
+}
+
+/**
+ * True when Claude Code ended a run because it used that run's turn budget
+ * ("Reached maximum number of turns (100)"). The task itself is unfinished, not failed.
+ */
+internal fun isTurnLimitFailure(reason: String): Boolean =
+    "maximum number of turns" in reason.lowercase()
+
+/** Why a failed turn may continue automatically, or null when only a manual retry is safe. */
+internal enum class AutoResumeKind { TRANSPORT, TURN_LIMIT }
+
+internal fun autoResumeKind(reason: String): AutoResumeKind? = when {
+    isTurnLimitFailure(reason) -> AutoResumeKind.TURN_LIMIT
+    isTransportFailure(reason) || isTransientProviderFailure(reason) -> AutoResumeKind.TRANSPORT
+    else -> null
+}
+
+/** Automatic continuations allowed per task after the turn limit; each run may use up to its own limit. */
+internal const val TURN_LIMIT_MAX_CONTINUATIONS = 4
+
+/** Delay before continuation [continuation] (0-based), or null once the budget is spent. */
+internal fun turnLimitContinuationDelayMillis(continuation: Int): Long? =
+    if (continuation in 0 until TURN_LIMIT_MAX_CONTINUATIONS) 2_000L else null
 
 /**
  * Backoff budget for automatic transport retries. Attempt 0 waits 5 s, attempt 1 waits 15 s;
@@ -284,14 +328,15 @@ internal fun shouldFinalizeStopLocally(retryGapActive: Boolean): Boolean =
     retryGapActive
 
 /**
- * True when a transport failure should be handed to the runtime recovery policy. Automatic
- * recovery is fail-closed: the failure must be a transport drop-out AND the bridge must have
- * supplied recovery evidence. The view model must not branch on harness type; any bridge that
- * reports recovery is treated alike. A null [RecoveryFailureInfo] preserves the request for
- * manual retry instead of starting a new session.
+ * True when a failure should be handed to the runtime recovery policy. Automatic recovery is
+ * fail-closed: the failure must be auto-resumable (a transport drop-out, a temporary provider
+ * error, or a used-up turn budget; see [autoResumeKind]) AND the bridge must have supplied
+ * recovery evidence. The view model must not branch on harness type; any bridge that reports
+ * recovery is treated alike. A null [RecoveryFailureInfo] preserves the request for manual
+ * retry instead of starting a new session.
  */
 internal fun shouldHandleTransportFailure(reason: String, recovery: RecoveryFailureInfo?): Boolean =
-    isTransportFailure(reason) && recovery != null
+    autoResumeKind(reason) != null && recovery != null
 
 /** True when a manual retry should be offered: the failed turn says so and nothing is running. */
 internal fun shouldOfferRetry(recovery: RecoveryFailureInfo?, isRunning: Boolean): Boolean =
@@ -454,10 +499,11 @@ internal fun recoveryUiStateForFallbackAttempt(
     attempt: Int,
     reason: String,
     recovery: RecoveryFailureInfo,
+    maxAttempts: Int = TRANSPORT_RETRY_MAX_ATTEMPTS,
 ): RecoveryUiState = RecoveryUiState(
     decision = decision,
     attempt = attempt,
-    maxAttempts = TRANSPORT_RETRY_MAX_ATTEMPTS,
+    maxAttempts = maxAttempts,
     reason = reason,
     retryAvailable = false,
     sideEffectsPossible = recovery.sideEffectsPossible,
@@ -673,6 +719,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     @Volatile private var lastOpenedAntigravityAuthUrl: String? = null
     private var activeRuntimeRequest: RuntimeRetryRequest? = null
     private var transportRetryAttempts: Int = 0
+    /** Automatic continuations after Claude Code reached its per-run turn limit, for the current task. */
+    private var turnLimitContinuations = 0
     private var transportRetryGeneration: Long = 0
     private var transportRetryJob: kotlinx.coroutines.Job? = null
     private var transportRetryWaiting: Boolean = false
@@ -5094,6 +5142,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         failedApiKeyIds.clear()
         transportRetryAttempts = 0
+        turnLimitContinuations = 0
         cancelTransportRetry()
         activeRuntimeRequest = RuntimeRetryRequest(
             runtime = activeRuntime(),
@@ -5131,6 +5180,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (_state.value.isRunning) return
         _state.update { it.copy(recovery = null, pendingRetryRequest = null, isRunning = true) }
         transportRetryAttempts = 0
+        turnLimitContinuations = 0
         cancelTransportRetry()
         activeRuntimeRequest = request
         viewModelScope.launch {
@@ -5150,6 +5200,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         steeringToFollowUp = false
         pendingFollowUps.clear()
         transportRetryAttempts = 0
+        turnLimitContinuations = 0
         val retryGapActive = transportRetryWaiting
         val finalizeLocally = shouldFinalizeStopLocally(retryGapActive)
         cancelTransportRetry()
@@ -5614,6 +5665,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             failedApiKeyIds.clear()
             steeringToFollowUp = false
             transportRetryAttempts = 0
+            turnLimitContinuations = 0
             cancelTransportRetry()
             if (pendingFollowUps.isNotEmpty()) {
                 viewModelScope.launch {
@@ -5674,16 +5726,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Transport-drop-out recovery. The runtime policy decides between continuing in place and
-     * starting a fresh session; the view model keeps its 5 s/15 s budget only for the fallback
-     * new-session path. The DSH bridge owns its in-place 5 s/15 s retries, so this must not add
+     * Automatic recovery after a transport drop-out, a temporary provider error, or a used-up
+     * turn budget ([autoResumeKind]). The runtime policy decides between continuing in place,
+     * resuming the persisted conversation, and starting a fresh session; the view model keeps
+     * its 5 s/15 s budget only for the fallback paths, plus a separate continuation budget for
+     * turn limits. The DSH bridge owns its in-place 5 s/15 s retries, so this must not add
      * another in-place retry. Recovery is fail-closed: without bridge recovery evidence (or a
      * live in-place continuation) the failed request is preserved for manual retry.
      */
     private fun retryOnTransportFailure(event: RuntimeEvent.SessionFailed): Boolean {
         val current = _state.value
         if (!current.isRunning || current.activeSessionId != event.sessionId) return false
-        if (!isTransportFailure(event.reason)) return false
+        val resumeKind = autoResumeKind(event.reason) ?: return false
         val request = activeRuntimeRequest ?: return false
         val sessionId = current.activeSessionId ?: return false
 
@@ -5700,6 +5754,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         val decision = RuntimeRecoveryPolicy.decide(request.runtime.recoveryProfile, context)
         if (decision == RecoveryDecision.MANUAL_RETRY_REQUIRED || decision == RecoveryDecision.NO_RETRY) return false
+        val turnLimit = resumeKind == AutoResumeKind.TURN_LIMIT
+        // Restarting an unfinished task from scratch would only repeat its first turns.
+        if (turnLimit && decision == RecoveryDecision.RETRY_NEW_SESSION_SAFE) return false
 
         val action = RecoveryAction(
             sessionId = sessionId,
@@ -5707,7 +5764,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             projectSlug = request.project.slug,
             projectKind = request.project.kind,
             originalPrompt = request.prompt,
-            instruction = DSH_CONTINUATION_INSTRUCTION,
+            instruction = if (turnLimit) TURN_LIMIT_CONTINUATION_INSTRUCTION else DSH_CONTINUATION_INSTRUCTION,
             history = request.history,
             provider = request.provider,
         )
@@ -5725,11 +5782,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return true
         }
 
-        // Fallback path (RETRY_NEW_SESSION_SAFE and future RESUME_PERSISTED): budget the
-        // new-session retries at 5 s then 15 s before exhausting into manual retry.
-        val delayMillis = transportRetryDelayMillis(transportRetryAttempts) ?: return false
-        transportRetryAttempts += 1
-        val attempt = transportRetryAttempts
+        // Fallback path (RETRY_NEW_SESSION_SAFE and RESUME_PERSISTED): budget the new-session
+        // retries at 5 s then 15 s before exhausting into manual retry. Turn-limit continuations
+        // have their own budget, so a long task does not use up its transport retries.
+        val delayMillis: Long
+        val attempt: Int
+        val maxAttempts: Int
+        if (turnLimit) {
+            delayMillis = turnLimitContinuationDelayMillis(turnLimitContinuations) ?: return false
+            turnLimitContinuations += 1
+            attempt = turnLimitContinuations
+            maxAttempts = TURN_LIMIT_MAX_CONTINUATIONS
+        } else {
+            delayMillis = transportRetryDelayMillis(transportRetryAttempts) ?: return false
+            transportRetryAttempts += 1
+            attempt = transportRetryAttempts
+            maxAttempts = TRANSPORT_RETRY_MAX_ATTEMPTS
+        }
+        val progressText = str(if (turnLimit) R.string.vm_recovery_continuing else R.string.vm_transport_reconnecting)
         val generation = ++transportRetryGeneration
         transportRetryWaiting = true
         transportRetryingFromSessionId = event.sessionId
@@ -5741,9 +5811,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             committed.copy(
                 activeSessionId = null,
                 pendingApproval = null,
-                recovery = recoveryUiStateForFallbackAttempt(decision, attempt, event.reason, effectiveInfo),
-                activity = listOf(ActivityItem(str(R.string.vm_transport_reconnecting), "", isComplete = false)) + committed.activity,
-                liveProcess = listOf(ActivityItem(str(R.string.vm_transport_reconnecting), "", isComplete = false)),
+                recovery = recoveryUiStateForFallbackAttempt(decision, attempt, event.reason, effectiveInfo, maxAttempts),
+                activity = listOf(ActivityItem(progressText, "", isComplete = false)) + committed.activity,
+                liveProcess = listOf(ActivityItem(progressText, "", isComplete = false)),
             )
         }
         transportRetryJob = viewModelScope.launch {
@@ -5793,6 +5863,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         failedApiKeyIds.clear()
         steeringToFollowUp = false
         transportRetryAttempts = 0
+        turnLimitContinuations = 0
         cancelTransportRetry()
         // Mirror the normal terminal path: drain any queued follow-ups now that the
         // session is no longer running, then persist the timeline including the

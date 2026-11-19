@@ -170,6 +170,7 @@
     <string name="vm_task_interrupted_detail">एजेंट प्रोसेस पूरा होने की सूचना देने से पहले रुक गया। इसका आधिकारिक सेशन फिर से शुरू करने के लिए यह चैट जारी रखें।</string>
     <string name="vm_transport_reconnecting">कनेक्शन टूट गया। फिर से कनेक्ट हो रहा है…</string>
     <string name="vm_recovery_reconnecting">कनेक्शन टूट गया। फिर से कनेक्ट हो रहा है…</string>
+    <string name="vm_recovery_continuing">टर्न की सीमा पूरी हुई। जारी रखा जा रहा है…</string>
     <string name="vm_recovery_attempt">प्रयास %1$d / %2$d</string>
     <string name="vm_recovery_exhausted">फिर से कनेक्ट नहीं हो सका</string>
     <string name="vm_recovery_retry">पुनः प्रयास करें</string>

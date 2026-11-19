@@ -170,6 +170,7 @@
     <string name="vm_task_interrupted_detail">Процесс агента остановился до сообщения о завершении. Продолжите этот чат, чтобы возобновить официальную сессию.</string>
     <string name="vm_transport_reconnecting">Соединение потеряно. Повторное подключение…</string>
     <string name="vm_recovery_reconnecting">Соединение потеряно. Повторное подключение…</string>
+    <string name="vm_recovery_continuing">Достигнут лимит ходов. Продолжаем…</string>
     <string name="vm_recovery_attempt">Попытка %1$d из %2$d</string>
     <string name="vm_recovery_exhausted">Не удалось повторно подключиться</string>
     <string name="vm_recovery_retry">Повторить</string>

@@ -124,6 +124,17 @@ class ClaudeRuntimeBridge(
     @Volatile private var sawToolCall: Boolean = false
     @Volatile private var sawMutatingTool: Boolean = false
     @Volatile private var lastSessionId: String? = null
+    /**
+     * Claude Code's own conversation id for the current task. A fresh task passes it with
+     * `--session-id`; an automatic resume passes it back with `--resume`, so Claude Code
+     * reloads the full transcript (including every tool call and result) from its session
+     * store in the PRoot home instead of starting over.
+     */
+    @Volatile private var claudeConversationId: String? = null
+    /** True once Claude Code has produced output for [claudeConversationId], so a transcript exists to resume. */
+    @Volatile private var conversationPersisted: Boolean = false
+    /** Workspace snapshot from the start of the task; resumed runs diff against it so no change is lost. */
+    @Volatile private var taskBaselineSnapshot: Map<String, String>? = null
     @Volatile private var activeProjectSlug: String? = null
     @Volatile private var taskStartedAtElapsedRealtime: Long = 0L
     @Volatile private var lastForegroundProgressAt: Long = 0L
@@ -144,13 +155,15 @@ class ClaudeRuntimeBridge(
         if (activeSessionId != sessionId && lastSessionId != sessionId) return null
         return RuntimeRecoveryContext(
             sessionId = sessionId,
-            // Claude Code runs one-shot `-p` turns: there is no live session to
-            // steer and no persisted handle to resume after the process is gone.
+            // Claude Code runs one-shot `-p` turns: there is no live process to steer,
+            // but its transcript persists and can be reloaded with `--resume`.
             inPlaceContinuationAvailable = false,
-            persistedHandle = null,
+            persistedHandle = claudeConversationId?.takeIf { conversationPersisted },
             toolsExecuted = sawToolCall,
             mutatingToolsExecuted = sawMutatingTool,
-            interruptedToolOutcomeKnown = false,
+            // Every tool_use is tracked until its tool_result arrives. An empty map means
+            // no tool was cut off mid-run, so the transcript holds every tool's outcome.
+            interruptedToolOutcomeKnown = toolNames.isEmpty(),
             checkpointAvailable = false,
             userStopped = userStopRequested,
         )
@@ -173,16 +186,59 @@ class ClaudeRuntimeBridge(
                 )
                 true
             }
+            RecoveryDecision.RESUME_PERSISTED -> {
+                // Defense in depth on top of the policy: only resume a transcript that exists
+                // and in which no tool was cut off before its result was recorded.
+                val context = recoveryContext(action.sessionId, action.projectId) ?: return false
+                val conversationId = context.persistedHandle ?: return false
+                if (context.toolsExecuted && !context.interruptedToolOutcomeKnown) return false
+                runSession(
+                    action.projectId,
+                    action.projectSlug,
+                    action.projectKind,
+                    action.instruction,
+                    action.history,
+                    action.provider,
+                    resumeConversationId = conversationId,
+                )
+                true
+            }
             else -> false
         }
     }
 
-    override suspend fun startSession(projectId: String, projectSlug: String, projectKind: ProjectKind, prompt: String, conversationHistory: List<ChatMessage>, provider: ProviderProfile): String = withContext(Dispatchers.IO + NonCancellable) {
+    override suspend fun startSession(projectId: String, projectSlug: String, projectKind: ProjectKind, prompt: String, conversationHistory: List<ChatMessage>, provider: ProviderProfile): String =
+        runSession(projectId, projectSlug, projectKind, prompt, conversationHistory, provider, resumeConversationId = null)
+
+    /**
+     * Runs one Claude Code process. A fresh task ([resumeConversationId] null) starts a new
+     * Claude conversation; a resume reloads that conversation's transcript with `--resume` and
+     * sends [prompt] as the next message, keeping the task's checkpoint and tool facts.
+     */
+    private suspend fun runSession(
+        projectId: String,
+        projectSlug: String,
+        projectKind: ProjectKind,
+        prompt: String,
+        conversationHistory: List<ChatMessage>,
+        provider: ProviderProfile,
+        resumeConversationId: String?,
+    ): String = withContext(Dispatchers.IO + NonCancellable) {
         val sessionId = UUID.randomUUID().toString()
+        val resuming = resumeConversationId != null
         finishedSessions.remove(sessionId)
         lastSessionId = sessionId
-        sawToolCall = false
-        sawMutatingTool = false
+        if (resuming) {
+            // Same task continues: keep the side-effect facts so a later failure still warns.
+            claudeConversationId = resumeConversationId
+            conversationPersisted = true
+        } else {
+            sawToolCall = false
+            sawMutatingTool = false
+            claudeConversationId = UUID.randomUUID().toString()
+            conversationPersisted = false
+            taskBaselineSnapshot = null
+        }
         activeSessionId = sessionId
         userStopRequested = false
         activeProjectSlug = projectSlug
@@ -240,8 +296,11 @@ class ClaudeRuntimeBridge(
             val installed = installer.installedRuntime()
             installer.ensureSettingsAndHooks()
             val workspace = ensureWorkspace(projectId)
-            createCheckpoint(projectId, workspace)
-            val before = snapshot(workspace)
+            // A resumed run continues the same task: keep the checkpoint and baseline taken
+            // when the task started, so Undo and the change list cover every run of it.
+            val baseline = taskBaselineSnapshot.takeIf { resuming }
+            if (baseline == null) createCheckpoint(projectId, workspace)
+            val before = baseline ?: snapshot(workspace).also { taskBaselineSnapshot = it }
             formatGateway = if (provider.kind.protocol in setOf(
                     com.jarves.mh.model.ProviderProtocol.OPENAI_CHAT,
                     com.jarves.mh.model.ProviderProtocol.OPENAI_RESPONSES,
@@ -259,7 +318,9 @@ class ClaudeRuntimeBridge(
 
             // Build a context-aware prompt that includes conversation history
             val guestWorkspacePath = "/workspace/$projectSlug"
-            val contextPrompt = buildContextPrompt(prompt, conversationHistory, guestWorkspacePath, projectKind)
+            // A resumed conversation already holds the history and workspace context.
+            val contextPrompt = if (resuming) prompt else buildContextPrompt(prompt, conversationHistory, guestWorkspacePath, projectKind)
+            val conversationId = claudeConversationId ?: UUID.randomUUID().toString().also { claudeConversationId = it }
 
             val command = buildList {
                 add(launch.executable)
@@ -274,7 +335,8 @@ class ClaudeRuntimeBridge(
                 add("--model")
                 add(launch.environment["ANTHROPIC_MODEL"] ?: provider.model)
                 add("--max-turns")
-                add("25")
+                add(CLAUDE_MAX_TURNS_PER_RUN.toString())
+                addAll(claudeConversationArgs(conversationId, resuming))
             }
             Log.d("ClaudeBridge", "Launching command: $command")
             val process = installer.process(
@@ -617,6 +679,8 @@ class ClaudeRuntimeBridge(
                 }
             }
             "assistant" -> {
+                // Claude Code has written this conversation to its transcript by now.
+                conversationPersisted = true
                 val message = json.optJSONObject("message") ?: return
                 val content = message.optJSONArray("content") ?: return
                 for (index in 0 until content.length()) {
@@ -669,8 +733,7 @@ class ClaudeRuntimeBridge(
             }
             "result" -> {
                 if (json.optBoolean("is_error")) {
-                    val message = json.optString("result").ifBlank { "Claude Code reported an error" }
-                    throw IllegalStateException(message)
+                    throw IllegalStateException(claudeResultErrorMessage(json))
                 }
                 // The structured result is Claude Code's authoritative terminal event.
                 // Update the UI immediately instead of waiting for a PRoot/Node wrapper
@@ -1247,6 +1310,35 @@ class ClaudeRuntimeBridge(
             "target",
             "venv",
         )
+    }
+}
+
+/**
+ * Turns a run is allowed before Claude Code stops with `error_max_turns`. Each tool call is a
+ * turn, so the old limit of 25 ended ordinary tasks part-way. Reaching this limit is no longer
+ * terminal: the app resumes the same conversation automatically (see MainViewModel).
+ */
+internal const val CLAUDE_MAX_TURNS_PER_RUN = 100
+
+/** `--session-id` names a fresh conversation; `--resume` reloads it from Claude Code's session store. */
+internal fun claudeConversationArgs(conversationId: String, resuming: Boolean): List<String> =
+    if (resuming) listOf("--resume", conversationId) else listOf("--session-id", conversationId)
+
+/**
+ * The reason to show for a `result` event with `is_error: true`. Error subtypes such as
+ * `error_max_turns` and `error_during_execution` carry no `result` text; Claude Code puts the
+ * reason in `errors` instead (e.g. "Reached maximum number of turns (100)").
+ */
+internal fun claudeResultErrorMessage(result: JSONObject): String {
+    result.optString("result").takeIf(String::isNotBlank)?.let { return it }
+    val errors = result.optJSONArray("errors")
+    val reasons = (0 until (errors?.length() ?: 0))
+        .mapNotNull { index -> errors?.optString(index)?.trim()?.takeIf(String::isNotEmpty) }
+    if (reasons.isNotEmpty()) return reasons.joinToString("; ")
+    return when (result.optString("subtype")) {
+        "error_max_turns" -> "Reached maximum number of turns"
+        "error_max_budget_usd" -> "Reached the maximum budget for this task"
+        else -> "Claude Code reported an error"
     }
 }
 
