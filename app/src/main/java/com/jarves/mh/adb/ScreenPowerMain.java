@@ -17,7 +17,7 @@ import java.util.List;
  * and unlocked, apps keep running, and screenshots and taps keep working, while an OLED panel
  * shows nothing and cannot burn in.
  *
- * <p>{@code hold} turns the panel off and re-applies that every few seconds, because some
+ * <p>{@code hold} turns the panel off and re-applies that every second, because some
  * phones power it back on after a rotation or a display-mode change. It prints a line each
  * time; once the adb connection is gone that write fails, and it turns the panel back on and
  * exits, so a lost connection never leaves the phone with a dark panel.
@@ -28,7 +28,7 @@ import java.util.List;
 public final class ScreenPowerMain {
     private static final int POWER_MODE_OFF = 0;
     private static final int POWER_MODE_NORMAL = 2;
-    private static final long HOLD_INTERVAL_MS = 3_000L;
+    private static final long HOLD_INTERVAL_MS = 1_000L;
 
     private ScreenPowerMain() {
     }

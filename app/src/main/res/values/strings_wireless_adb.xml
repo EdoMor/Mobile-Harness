@@ -43,8 +43,11 @@
     <string name="adb_screen_off_button">Turn screen off</string>
     <string name="adb_screen_on_button">Turn screen on</string>
     <string name="adb_screen_off_title">Turn the screen off for this run?</string>
-    <string name="adb_screen_off_explain">The display goes dark to protect it from burn-in, but the phone stays awake and unlocked, so the agent can keep using adb, screenshots and taps. It turns back on when the run ends. To see it sooner, press the power button twice; the phone will be locked.</string>
-    <string name="adb_screen_off_done">Screen is off. It turns back on when the run ends.</string>
+    <string name="adb_screen_off_explain">The display goes dark to protect it from burn-in, but the phone stays awake and unlocked, so the agent can keep using adb, screenshots and taps. When the run ends, the screen wakes to black and pulses twice, pulses twice more a minute later, then locks. Tap the screen during that to keep it unlocked. To see it sooner, press the power button twice; the phone will be locked.</string>
+    <string name="adb_screen_off_done">Screen is off. It pulses and locks when the run ends.</string>
     <string name="adb_screen_on_done">Screen is back on.</string>
     <string name="adb_screen_off_failed">Could not turn the screen off: %1$s</string>
+    <string name="adb_pulse_dismiss_hint">Tap to dismiss</string>
+    <string name="adb_screen_woke_reason">The screen came back on: %1$s</string>
+    <string name="adb_screen_woke_sleep">The phone went to sleep, so the screen-off mode ended.</string>
 </resources>

@@ -43,8 +43,11 @@
     <string name="adb_screen_off_button">Apagar pantalla</string>
     <string name="adb_screen_on_button">Encender pantalla</string>
     <string name="adb_screen_off_title">¿Apagar la pantalla durante esta ejecución?</string>
-    <string name="adb_screen_off_explain">La pantalla se oscurece para protegerla del desgaste (burn-in), pero el teléfono sigue activo y desbloqueado, así que el agente puede seguir usando adb, capturas de pantalla y toques. Se vuelve a encender cuando termina la ejecución. Para verla antes, pulsa dos veces el botón de encendido; el teléfono quedará bloqueado.</string>
-    <string name="adb_screen_off_done">La pantalla está apagada. Se volverá a encender cuando termine la ejecución.</string>
+    <string name="adb_screen_off_explain">La pantalla se oscurece para protegerla del desgaste (burn-in), pero el teléfono sigue activo y desbloqueado, así que el agente puede seguir usando adb, capturas de pantalla y toques. Cuando termina la ejecución, la pantalla se enciende en negro y muestra dos pulsos, otros dos un minuto después, y luego se bloquea. Toca la pantalla durante ese tiempo para mantenerla desbloqueada. Para verla antes, pulsa dos veces el botón de encendido; el teléfono quedará bloqueado.</string>
+    <string name="adb_screen_off_done">La pantalla está apagada. Mostrará los pulsos y se bloqueará cuando termine la ejecución.</string>
     <string name="adb_screen_on_done">La pantalla vuelve a estar encendida.</string>
     <string name="adb_screen_off_failed">No se pudo apagar la pantalla: %1$s</string>
+    <string name="adb_pulse_dismiss_hint">Toca para cerrar</string>
+    <string name="adb_screen_woke_reason">La pantalla se volvió a encender: %1$s</string>
+    <string name="adb_screen_woke_sleep">El teléfono entró en reposo, así que terminó el modo de pantalla apagada.</string>
 </resources>

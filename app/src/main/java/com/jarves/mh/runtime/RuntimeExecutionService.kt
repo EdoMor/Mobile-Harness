@@ -74,13 +74,14 @@ class RuntimeExecutionService : Service() {
             }
             ACTION_CANCELLED -> {
                 taskRunning = false
-                WirelessAdbManager.get(this).endScreenOffAfterRun()
+                WirelessAdbManager.get(this).onRunCancelled()
                 releaseWakeLock()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
             else -> {
                 taskRunning = true
+                WirelessAdbManager.get(this).onRunStarted()
                 val detail = intent?.getStringExtra(EXTRA_DETAIL)?.takeIf(String::isNotBlank)
                     ?: AppStrings.get(this, R.string.rt_exec_working_in, projectName)
                 startForeground(
@@ -128,7 +129,7 @@ class RuntimeExecutionService : Service() {
 
     private fun finishTask(title: String, detail: String, failed: Boolean) {
         taskRunning = false
-        WirelessAdbManager.get(this).endScreenOffAfterRun()
+        WirelessAdbManager.get(this).onRunFinished(failed)
         releaseWakeLock()
         stopForeground(STOP_FOREGROUND_REMOVE)
         val notification = NotificationCompat.Builder(this, RESULT_CHANNEL_ID)
@@ -167,7 +168,7 @@ class RuntimeExecutionService : Service() {
     }
 
     override fun onDestroy() {
-        WirelessAdbManager.get(this).endScreenOffAfterRun()
+        WirelessAdbManager.get(this).onServiceDestroyed()
         releaseWakeLock()
         super.onDestroy()
     }

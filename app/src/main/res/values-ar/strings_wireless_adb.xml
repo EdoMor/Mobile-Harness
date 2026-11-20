@@ -43,8 +43,11 @@
     <string name="adb_screen_off_button">إيقاف الشاشة</string>
     <string name="adb_screen_on_button">تشغيل الشاشة</string>
     <string name="adb_screen_off_title">هل تريد إيقاف الشاشة أثناء هذا التشغيل؟</string>
-    <string name="adb_screen_off_explain">تصبح الشاشة سوداء لحمايتها من احتراق الشاشة، لكن الهاتف يبقى نشطًا وغير مقفل، فيستطيع الوكيل مواصلة استخدام adb ولقطات الشاشة والنقرات. تعود الشاشة للعمل عند انتهاء التشغيل. لرؤيتها قبل ذلك، اضغط زر التشغيل مرتين؛ سيُقفل الهاتف.</string>
-    <string name="adb_screen_off_done">الشاشة متوقفة. ستعود للعمل عند انتهاء التشغيل.</string>
+    <string name="adb_screen_off_explain">تصبح الشاشة سوداء لحمايتها من احتراق الشاشة، لكن الهاتف يبقى نشطًا وغير مقفل، فيستطيع الوكيل مواصلة استخدام adb ولقطات الشاشة والنقرات. عند انتهاء التشغيل، تعمل الشاشة بلون أسود وتعرض نبضتين، ثم نبضتين أخريين بعد دقيقة، ثم تُقفل. انقر على الشاشة خلال ذلك لإبقائها غير مقفلة. لرؤيتها قبل ذلك، اضغط زر التشغيل مرتين؛ سيُقفل الهاتف.</string>
+    <string name="adb_screen_off_done">الشاشة متوقفة. ستعرض النبضات وتُقفل عند انتهاء التشغيل.</string>
     <string name="adb_screen_on_done">عادت الشاشة للعمل.</string>
     <string name="adb_screen_off_failed">تعذّر إيقاف الشاشة: %1$s</string>
+    <string name="adb_pulse_dismiss_hint">انقر للإغلاق</string>
+    <string name="adb_screen_woke_reason">عادت الشاشة للعمل: %1$s</string>
+    <string name="adb_screen_woke_sleep">دخل الهاتف في وضع السكون، فانتهى وضع إيقاف الشاشة.</string>
 </resources>

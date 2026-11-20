@@ -43,8 +43,11 @@
     <string name="adb_screen_off_button">स्क्रीन बंद करें</string>
     <string name="adb_screen_on_button">स्क्रीन चालू करें</string>
     <string name="adb_screen_off_title">इस रन के दौरान स्क्रीन बंद करें?</string>
-    <string name="adb_screen_off_explain">बर्न-इन से बचाने के लिए डिस्प्ले काली हो जाती है, लेकिन फ़ोन जागा और अनलॉक रहता है, ताकि एजेंट adb, स्क्रीनशॉट और टैप का इस्तेमाल करता रहे। रन खत्म होने पर स्क्रीन फिर से चालू हो जाती है। उससे पहले देखने के लिए पावर बटन दो बार दबाएं; फ़ोन लॉक हो जाएगा।</string>
-    <string name="adb_screen_off_done">स्क्रीन बंद है। रन खत्म होने पर यह फिर से चालू हो जाएगी।</string>
+    <string name="adb_screen_off_explain">बर्न-इन से बचाने के लिए डिस्प्ले काली हो जाती है, लेकिन फ़ोन जागा और अनलॉक रहता है, ताकि एजेंट adb, स्क्रीनशॉट और टैप का इस्तेमाल करता रहे। रन खत्म होने पर स्क्रीन काली होकर चालू होती है और दो पल्स दिखाती है, एक मिनट बाद दो और, फिर लॉक हो जाती है। इस दौरान स्क्रीन पर टैप करें तो फ़ोन अनलॉक रहेगा। उससे पहले देखने के लिए पावर बटन दो बार दबाएं; फ़ोन लॉक हो जाएगा।</string>
+    <string name="adb_screen_off_done">स्क्रीन बंद है। रन खत्म होने पर यह पल्स दिखाकर लॉक हो जाएगी।</string>
     <string name="adb_screen_on_done">स्क्रीन फिर से चालू है।</string>
     <string name="adb_screen_off_failed">स्क्रीन बंद नहीं हो सकी: %1$s</string>
+    <string name="adb_pulse_dismiss_hint">बंद करने के लिए टैप करें</string>
+    <string name="adb_screen_woke_reason">स्क्रीन फिर से चालू हो गई: %1$s</string>
+    <string name="adb_screen_woke_sleep">फ़ोन स्लीप में चला गया, इसलिए स्क्रीन-बंद मोड खत्म हो गया।</string>
 </resources>

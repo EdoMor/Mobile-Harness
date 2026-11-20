@@ -69,5 +69,16 @@
         <receiver
             android:name=".runtime.WirelessAdbPairingReceiver"
             android:exported="false" />
+        <!-- Exported only so adb's shell user can open it at the end of a screen-off run;
+             it closes at once unless the intent carries the app's one-time token. -->
+        <activity
+            android:name=".ui.RunFinishedPulseActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
     </application>
 </manifest>

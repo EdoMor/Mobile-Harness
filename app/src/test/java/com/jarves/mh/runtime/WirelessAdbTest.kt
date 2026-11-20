@@ -113,6 +113,46 @@ class WirelessAdbTest {
     }
 
     @Test
+    fun pulseScreenOpensWithItsTokenAndOutcome() {
+        assertEquals(
+            "am start -n com.jarves.mh/com.jarves.mh.ui.RunFinishedPulseActivity " +
+                "--es token 3f0c9d3e-1b7a-4c55-9a51-7f3c2b8e6d10 --ez failed true",
+            pulseActivityShellCommand("com.jarves.mh", "3f0c9d3e-1b7a-4c55-9a51-7f3c2b8e6d10", failed = true),
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun pulseScreenRejectsATokenThatCouldInjectCommands() {
+        pulseActivityShellCommand("com.jarves.mh", "abc; input keyevent 26", failed = false)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun pulseScreenRejectsAnOddPackageName() {
+        pulseActivityShellCommand("com.jarves.mh;rm", "3f0c9d3e-1b7a-4c55", failed = false)
+    }
+
+    @Test
+    fun lockUsesThePowerKey() {
+        assertEquals("input keyevent KEYCODE_POWER", LOCK_PHONE_COMMAND)
+    }
+
+    @Test
+    fun helperFailureSkipsTheHeartbeat() {
+        assertEquals(
+            "screen power failed: java.lang.NoSuchMethodException",
+            screenHelperFailureDetail("holding\nholding\nscreen power failed: java.lang.NoSuchMethodException\n", 1),
+        )
+        assertEquals("the screen-off helper stopped (exit 143)", screenHelperFailureDetail("holding\nholding\n", 143))
+        assertEquals("no response", screenHelperFailureDetail("", null))
+    }
+
+    @Test
+    fun runEndWaitsLongerThanAnyAutomaticResume() {
+        // Turn-limit resumes start after 2 s; network retries after 5 s, then 15 s.
+        assertTrue(WirelessAdbManager.RUN_END_GRACE_MS > 15_000L)
+    }
+
+    @Test
     fun agentGuidanceForbidsTouchingTheConnectionAndAsksBeforeRiskyChanges() {
         assertTrue(ADB_AGENT_GUIDANCE.startsWith("<phone_adb>"))
         assertTrue(ADB_AGENT_GUIDANCE.endsWith("</phone_adb>"))

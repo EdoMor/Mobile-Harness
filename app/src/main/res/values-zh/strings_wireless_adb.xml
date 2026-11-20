@@ -43,8 +43,11 @@
     <string name="adb_screen_off_button">关闭屏幕</string>
     <string name="adb_screen_on_button">打开屏幕</string>
     <string name="adb_screen_off_title">要在这次运行期间关闭屏幕吗？</string>
-    <string name="adb_screen_off_explain">屏幕会变黑以防止烧屏，但手机保持唤醒且不锁定，代理仍可继续使用 adb、截屏和点按。运行结束后屏幕会重新亮起。如需提前查看，请按两次电源键；手机将会锁定。</string>
-    <string name="adb_screen_off_done">屏幕已关闭。运行结束后会重新亮起。</string>
+    <string name="adb_screen_off_explain">屏幕会变黑以防止烧屏，但手机保持唤醒且不锁定，代理仍可继续使用 adb、截屏和点按。运行结束后，屏幕会以黑色亮起并显示两次脉冲，一分钟后再显示两次，然后锁定。在此期间点按屏幕即可保持解锁。如需提前查看，请按两次电源键；手机将会锁定。</string>
+    <string name="adb_screen_off_done">屏幕已关闭。运行结束后会显示脉冲并锁定。</string>
     <string name="adb_screen_on_done">屏幕已重新亮起。</string>
     <string name="adb_screen_off_failed">无法关闭屏幕：%1$s</string>
+    <string name="adb_pulse_dismiss_hint">点按以关闭</string>
+    <string name="adb_screen_woke_reason">屏幕重新亮起：%1$s</string>
+    <string name="adb_screen_woke_sleep">手机已进入休眠，因此关闭屏幕模式已结束。</string>
 </resources>

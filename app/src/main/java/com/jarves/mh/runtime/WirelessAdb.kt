@@ -98,6 +98,31 @@ internal fun screenPowerShellCommand(apkPath: String, mode: String): String {
     return "CLASSPATH='$apkPath' app_process /system/bin com.jarves.mh.adb.ScreenPowerMain $mode"
 }
 
+/** The pulse screen's class; adb starts it, so it is named here rather than referenced. */
+internal const val PULSE_ACTIVITY_CLASS = "com.jarves.mh.ui.RunFinishedPulseActivity"
+
+/** Puts the phone to sleep the way the power button does, which locks it straight away by default. */
+internal const val LOCK_PHONE_COMMAND = "input keyevent KEYCODE_POWER"
+
+/**
+ * The device-side command that opens the pulse screen. Android does not let an app in the
+ * background open a screen of its own, but adb's shell user may, so the app starts it this way.
+ */
+internal fun pulseActivityShellCommand(packageName: String, token: String, failed: Boolean): String {
+    require(Regex("^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$").matches(packageName)) { "Unexpected package name" }
+    require(Regex("^[A-Za-z0-9-]{8,64}$").matches(token)) { "Unexpected token" }
+    return "am start -n $packageName/$PULSE_ACTIVITY_CLASS --es token $token --ez failed $failed"
+}
+
+/** Why the screen-off helper stopped: its last message other than the "holding" heartbeat. */
+internal fun screenHelperFailureDetail(log: String, exitCode: Int?): String =
+    log.lineSequence()
+        .map(String::trim)
+        .lastOrNull { it.isNotEmpty() && it != "holding" }
+        ?.take(200)
+        ?: exitCode?.let { "the screen-off helper stopped (exit $it)" }
+        ?: "no response"
+
 /** The serial adb gives a wireless-debugging connection to this phone itself. */
 internal fun localAdbSerial(port: Int): String = "127.0.0.1:$port"
 
@@ -161,6 +186,9 @@ class WirelessAdbManager private constructor(private val context: Context) {
     private val workspace = File(context.filesDir, "workspaces/wireless-adb")
     @Volatile private var server: Process? = null
     @Volatile private var screenHold: Process? = null
+    @Volatile private var pendingEnding: kotlinx.coroutines.Job? = null
+    @Volatile private var endingToken: String? = null
+    private val screenLog = File(context.filesDir, "wireless-adb/screen.log")
     private var screenWakeLock: PowerManager.WakeLock? = null
     private var sleepReceiver: BroadcastReceiver? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -184,6 +212,7 @@ class WirelessAdbManager private constructor(private val context: Context) {
             val devices = parseAdbDevices(runAdb(listOf("devices"), 10_000L).second)
             serial = saved?.takeIf { devices[it] == "device" }
         }
+        if (installed && !isScreenOffActive()) restoreAutoBrightness()
         val runtimeInstalled = runCatching { installer.isInstalled() }.getOrDefault(false)
         _state.update {
             it.copy(
@@ -264,16 +293,18 @@ class WirelessAdbManager private constructor(private val context: Context) {
     /**
      * Powers the display panel off for a long run, to protect an OLED screen from burn-in,
      * while the phone stays awake and unlocked so the agent can keep using adb, screenshots
-     * and taps. A screen wake lock stops the screen timeout from sleeping (and locking) the
-     * phone, and [ScreenPowerMain] `hold` keeps the panel off through rotations.
+     * and taps. A bright screen wake lock stops the screen timeout from sleeping (and locking)
+     * the phone without the dim step that re-lights some panels, auto-brightness is paused for
+     * the same reason, and [ScreenPowerMain] `hold` keeps the panel off through rotations.
      */
     suspend fun turnScreenOff(): WirelessAdbResult = exclusive {
         requireInstalled()
         ensureServer()
         val serial = connectedSerialOrConnect()
         stopScreenHoldLocked(restore = false)
-        val log = File(context.filesDir, "wireless-adb/screen.log").apply { parentFile?.mkdirs(); delete() }
+        val log = screenLog.apply { parentFile?.mkdirs(); delete() }
         acquireScreenWakeLock()
+        pauseAutoBrightness(serial)
         val hold = installer.process(
             installer.installedRuntime().proot,
             installer.installedRuntime().rootfs,
@@ -288,7 +319,7 @@ class WirelessAdbManager private constructor(private val context: Context) {
         // first "holding" line, which comes only after the panel really turned off.
         var started = false
         for (attempt in 0 until 75) {
-            if (runCatching { log.readTailText(4_096) }.getOrDefault("").contains("holding")) {
+            if (readScreenLog().contains("holding")) {
                 started = true
                 break
             }
@@ -296,22 +327,20 @@ class WirelessAdbManager private constructor(private val context: Context) {
             delay(200)
         }
         if (!started) {
-            val detail = adbFailureDetail(runCatching { log.readTailText(4_096) }.getOrDefault(""))
+            val detail = screenHelperFailure(readScreenLog(), hold)
             stopScreenHoldLocked(restore = true)
-            error(str(R.string.adb_screen_off_failed, detail.ifBlank { "no response" }))
+            error(str(R.string.adb_screen_off_failed, detail))
         }
         watchForRealSleep()
-        scope.launch {
-            // If the hold ends on its own (adb dropped, phone rebooted adbd), stop claiming it is off.
-            runCatching { hold.waitFor() }
-            if (screenHold === hold) endScreenOffAfterRun()
-        }
+        watchHold(hold)
         _state.update { it.copy(screenOff = true) }
         WirelessAdbResult(true, str(R.string.adb_screen_off_done))
     }
 
     /** Powers the display panel back on and lets the screen time out normally again. */
     suspend fun turnScreenOn(): WirelessAdbResult = exclusive {
+        pendingEnding?.cancel()
+        pendingEnding = null
         stopScreenHoldLocked(restore = true)
         WirelessAdbResult(true, str(R.string.adb_screen_on_done))
     }
@@ -321,11 +350,88 @@ class WirelessAdbManager private constructor(private val context: Context) {
         scope.launch { turnScreenOff() }
     }
 
-    /** Called when a run ends, is stopped, or its service goes away: never leave the panel dark. */
+    /** A run (or an automatic resume of it) started: a pending end-of-run sequence is no longer due. */
+    fun onRunStarted() {
+        pendingEnding?.cancel()
+        pendingEnding = null
+    }
+
+    /**
+     * A run reported that it finished. Automatic resumes report the same thing between
+     * their parts and start again within seconds, so the ending waits [RUN_END_GRACE_MS]
+     * and is cancelled by [onRunStarted]. Then the screen wakes to the pulse sequence.
+     */
+    fun onRunFinished(failed: Boolean) {
+        if (!isScreenOffActive()) return
+        pendingEnding?.cancel()
+        pendingEnding = scope.launch {
+            delay(RUN_END_GRACE_MS)
+            playEnding(failed)
+        }
+    }
+
+    /** The user stopped the run, so they are at the phone: turn the screen straight back on. */
+    fun onRunCancelled() {
+        pendingEnding?.cancel()
+        pendingEnding = null
+        endScreenOffAfterRun()
+    }
+
+    /** The running-task service went away; unless an ending is scheduled, never leave the panel dark. */
+    fun onServiceDestroyed() {
+        if (pendingEnding?.isActive == true) return
+        endScreenOffAfterRun()
+    }
+
+    /** Never leave the panel dark: turn it back on if screen-off mode is still active. */
     fun endScreenOffAfterRun() {
-        if (screenHold == null && screenWakeLock == null && !_state.value.screenOff) return
+        if (!isScreenOffActive()) return
         scope.launch { turnScreenOn() }
     }
+
+    /** Checks a token from [RunFinishedPulseActivity]'s intent; each token works once. */
+    fun acceptEndingToken(token: String): Boolean {
+        val expected = endingToken ?: return false
+        endingToken = null
+        return token.isNotEmpty() && token == expected
+    }
+
+    /**
+     * Last step of the ending: puts the phone to sleep with the power key, which locks it at
+     * once when Android's "Power button instantly locks" is on (the default). Skipped if the
+     * phone is already asleep, since the same key would wake it.
+     */
+    suspend fun lockPhone(): Unit = withContext(Dispatchers.IO) {
+        if (!context.getSystemService(PowerManager::class.java).isInteractive) return@withContext
+        val serial = savedSerial() ?: return@withContext
+        if (!isServerListening()) return@withContext
+        runCatching { runAdb(listOf("-s", serial, "shell", LOCK_PHONE_COMMAND), 10_000L) }
+        Unit
+    }
+
+    /**
+     * Opens the pulse screen while the panel is still dark, so the app underneath never shows,
+     * then powers the panel on to reveal it. The pulse screen runs the rest of the sequence.
+     */
+    private suspend fun playEnding(failed: Boolean) {
+        exclusive {
+            val serial = savedSerial()
+            var launched = false
+            if (serial != null && isServerListening()) {
+                val token = java.util.UUID.randomUUID().toString()
+                endingToken = token
+                val command = pulseActivityShellCommand(context.packageName, token, failed)
+                val (exit, output) = runAdb(listOf("-s", serial, "shell", command), 15_000L)
+                launched = exit == 0 && !output.contains("Error", ignoreCase = true)
+                if (launched) delay(PULSE_SCREEN_SETTLE_MS) else endingToken = null
+            }
+            stopScreenHoldLocked(restore = true)
+            WirelessAdbResult(true, str(R.string.adb_screen_on_done))
+        }
+        pendingEnding = null
+    }
+
+    private fun isScreenOffActive(): Boolean = screenHold != null || _state.value.screenOff
 
     private suspend fun connectedSerialOrConnect(): String {
         val saved = savedSerial()
@@ -337,6 +443,29 @@ class WirelessAdbManager private constructor(private val context: Context) {
     private fun screenPowerCommand(mode: String): String =
         screenPowerShellCommand(context.applicationInfo.sourceDir, mode)
 
+    private fun readScreenLog(): String = runCatching { screenLog.readTailText(8_192) }.getOrDefault("")
+
+    /**
+     * Checks the helper every second. Polling avoids a blocking wait that a signal can cut
+     * short, which would look like the helper had stopped and turn the screen back on.
+     */
+    private fun watchHold(hold: Process) {
+        scope.launch {
+            while (screenHold === hold && hold.isAlive) delay(1_000L)
+            if (screenHold !== hold) return@launch
+            val reason = str(R.string.adb_screen_woke_reason, screenHelperFailure(readScreenLog(), hold))
+            exclusive {
+                stopScreenHoldLocked(restore = true)
+                WirelessAdbResult(false, reason)
+            }
+        }
+    }
+
+    private fun screenHelperFailure(log: String, hold: Process): String {
+        val exit = runCatching { hold.exitValue() }.getOrNull()
+        return screenHelperFailureDetail(log, exit)
+    }
+
     /** Must run inside [exclusive]. */
     private fun stopScreenHoldLocked(restore: Boolean) {
         val hold = screenHold
@@ -347,6 +476,7 @@ class WirelessAdbManager private constructor(private val context: Context) {
                 runCatching { runAdb(listOf("-s", serial, "shell", screenPowerCommand("on")), 20_000L) }
             }
         }
+        restoreAutoBrightness()
         sleepReceiver?.let { receiver -> runCatching { context.unregisterReceiver(receiver) } }
         sleepReceiver = null
         screenWakeLock?.takeIf { it.isHeld }?.release()
@@ -357,15 +487,39 @@ class WirelessAdbManager private constructor(private val context: Context) {
     private fun acquireScreenWakeLock() {
         if (screenWakeLock?.isHeld == true) return
         // A screen-level wake lock (not just a partial one) is what stops the screen timeout
-        // from sleeping and locking the phone; the panel itself is off, so nothing is lit.
+        // from sleeping and locking the phone. It is the bright kind on purpose: with a dim
+        // lock, Android dims at the timeout, and on many phones dimming re-lights the panel.
         @Suppress("DEPRECATION")
-        val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ON_AFTER_RELEASE
+        val flags = PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ON_AFTER_RELEASE
         screenWakeLock = context.getSystemService(PowerManager::class.java)
             .newWakeLock(flags, "com.jarves.mh:adb-screen-off")
             .apply {
                 setReferenceCounted(false)
                 acquire(SCREEN_OFF_MAX_MS)
             }
+    }
+
+    /**
+     * Auto-brightness changes the backlight as the light around the phone changes, and on many
+     * phones that re-lights a panel that was powered off. Pause it while the screen is off; the
+     * flag is saved so the next start restores it even if the app was killed in between.
+     */
+    private fun pauseAutoBrightness(serial: String) {
+        val (exit, output) = runAdb(listOf("-s", serial, "shell", "settings get system screen_brightness_mode"), 10_000L)
+        val mode = output.lineSequence().map(String::trim).lastOrNull { it.isNotEmpty() }
+        if (exit != 0 || mode != "1") return
+        val (putExit, _) = runAdb(listOf("-s", serial, "shell", "settings put system screen_brightness_mode 0"), 10_000L)
+        if (putExit == 0) prefs.edit().putBoolean(KEY_RESTORE_AUTO_BRIGHTNESS, true).apply()
+    }
+
+    private fun restoreAutoBrightness() {
+        if (!prefs.getBoolean(KEY_RESTORE_AUTO_BRIGHTNESS, false)) return
+        if (!installer.isWirelessAdbInstalled() || !isServerListening()) return
+        val serial = savedSerial() ?: return
+        val (exit, _) = runCatching {
+            runAdb(listOf("-s", serial, "shell", "settings put system screen_brightness_mode 1"), 10_000L)
+        }.getOrDefault(-1 to "")
+        if (exit == 0) prefs.edit().remove(KEY_RESTORE_AUTO_BRIGHTNESS).apply()
     }
 
     /**
@@ -379,9 +533,11 @@ class WirelessAdbManager private constructor(private val context: Context) {
             override fun onReceive(context: Context, intent: Intent) {
                 if (intent.action == Intent.ACTION_SCREEN_OFF) {
                     scope.launch {
+                        pendingEnding?.cancel()
+                        pendingEnding = null
                         exclusive {
                             stopScreenHoldLocked(restore = false)
-                            WirelessAdbResult(true, str(R.string.adb_screen_on_done))
+                            WirelessAdbResult(true, str(R.string.adb_screen_woke_sleep))
                         }
                     }
                 }
@@ -570,6 +726,11 @@ class WirelessAdbManager private constructor(private val context: Context) {
 
     companion object {
         private const val KEY_LAST_PORT = "last_connect_port"
+        private const val KEY_RESTORE_AUTO_BRIGHTNESS = "restore_auto_brightness"
+        /** Automatic resumes restart within 2 s (turn limit) or 5 s, then 15 s (network errors). */
+        const val RUN_END_GRACE_MS = 20_000L
+        /** Time for the pulse screen to draw its first black frame before the panel turns on. */
+        private const val PULSE_SCREEN_SETTLE_MS = 800L
         /** Upper bound so a forgotten screen-off cannot keep the phone awake indefinitely. */
         private const val SCREEN_OFF_MAX_MS = 24L * 60 * 60 * 1_000
         private const val GUEST_WORKSPACE = "/workspace/wireless-adb"
