@@ -23,7 +23,6 @@ Behaviour change to know about: because of `196e9156c5`, a provider endpoint tha
 
 - **Claude auto-resume.** When a Claude Code run reaches its turn limit or hits a temporary network or provider error, the app reopens the same conversation with `--resume` and continues. Credential, quota and rate-limit errors still stop the task.
 - **Wireless ADB** (Settings → Wireless ADB). The app installs a static ARM64 `adb` 35.0.2 into the Linux environment (from [lzhiyong/android-sdk-tools](https://github.com/lzhiyong/android-sdk-tools), pinned by SHA-256). It then pairs and connects that `adb` to the phone's own Wireless debugging (Android 11+, Wi‑Fi). You type the pairing code into a notification, so Android's pairing dialog stays open. Ports are found over mDNS. Agents get `adb` only after you turn on **Let agents use adb**. They run as the Android shell user, and are told to ask before risky changes.
-
 - **Screen off for long adb runs.** A button beside Stop (and on the running-task notification) powers the display panel off over ADB, while the phone stays awake and unlocked. When the run ends, the screen wakes to black and shows a dot pulse twice, twice more a minute later, then the phone locks. Tapping the screen stops the sequence.
 
 ## Considered and left out
