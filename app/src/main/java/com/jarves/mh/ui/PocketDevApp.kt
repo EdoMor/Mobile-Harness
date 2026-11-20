@@ -6775,6 +6775,8 @@ private fun ChatTab(
                         Spacer(Modifier.width(4.dp))
 
                         if (isRunning) {
+                            // Shown only while Wireless ADB is connected.
+                            AdbScreenOffButton()
                             Box(
                                 modifier = Modifier
                                     .size(38.dp)

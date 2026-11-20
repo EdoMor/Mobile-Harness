@@ -69,8 +69,12 @@ class RuntimeExecutionService : Service() {
                 detail = intent?.getStringExtra(EXTRA_DETAIL) ?: AppStrings.get(this, R.string.rt_exec_could_not_finish),
                 failed = true,
             )
+            ACTION_SCREEN_OFF -> {
+                if (taskRunning) WirelessAdbManager.get(this).turnScreenOffInBackground()
+            }
             ACTION_CANCELLED -> {
                 taskRunning = false
+                WirelessAdbManager.get(this).endScreenOffAfterRun()
                 releaseWakeLock()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
@@ -108,12 +112,23 @@ class RuntimeExecutionService : Service() {
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
             )
             builder.addAction(0, AppStrings.get(this, R.string.rt_exec_stop_task), stopIntent)
+            val adb = WirelessAdbManager.get(this).state.value
+            if (adb.connectedSerial != null && !adb.screenOff) {
+                val screenOffIntent = PendingIntent.getService(
+                    this,
+                    3,
+                    Intent(this, RuntimeExecutionService::class.java).setAction(ACTION_SCREEN_OFF),
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                )
+                builder.addAction(0, AppStrings.get(this, R.string.adb_screen_off_button), screenOffIntent)
+            }
         }
         return builder.build()
     }
 
     private fun finishTask(title: String, detail: String, failed: Boolean) {
         taskRunning = false
+        WirelessAdbManager.get(this).endScreenOffAfterRun()
         releaseWakeLock()
         stopForeground(STOP_FOREGROUND_REMOVE)
         val notification = NotificationCompat.Builder(this, RESULT_CHANNEL_ID)
@@ -152,6 +167,7 @@ class RuntimeExecutionService : Service() {
     }
 
     override fun onDestroy() {
+        WirelessAdbManager.get(this).endScreenOffAfterRun()
         releaseWakeLock()
         super.onDestroy()
     }
@@ -165,6 +181,7 @@ class RuntimeExecutionService : Service() {
         const val ACTION_COMPLETE = "com.jarves.mh.COMPLETE_RUNTIME"
         const val ACTION_FAILED = "com.jarves.mh.FAIL_RUNTIME"
         const val ACTION_CANCELLED = "com.jarves.mh.CANCEL_RUNTIME"
+        const val ACTION_SCREEN_OFF = "com.jarves.mh.SCREEN_OFF_RUNTIME"
         const val EXTRA_PROJECT_NAME = "project_name"
         const val EXTRA_DETAIL = "detail"
         const val EXTRA_TITLE = "title"

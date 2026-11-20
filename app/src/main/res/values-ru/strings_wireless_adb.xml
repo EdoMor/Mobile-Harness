@@ -40,4 +40,11 @@
     <string name="adb_notification_action">Ввести код</string>
     <string name="adb_notification_input_label">6-значный код</string>
     <string name="adb_notification_pairing">Связывание с этим телефоном…</string>
+    <string name="adb_screen_off_button">Выключить экран</string>
+    <string name="adb_screen_on_button">Включить экран</string>
+    <string name="adb_screen_off_title">Выключить экран на время этого запуска?</string>
+    <string name="adb_screen_off_explain">Экран погаснет, чтобы защитить его от выгорания, но телефон останется активным и разблокированным, и агент сможет и дальше использовать adb, снимки экрана и нажатия. Экран включится, когда запуск завершится. Чтобы увидеть его раньше, дважды нажмите кнопку питания; телефон будет заблокирован.</string>
+    <string name="adb_screen_off_done">Экран выключен. Он включится, когда запуск завершится.</string>
+    <string name="adb_screen_on_done">Экран снова включён.</string>
+    <string name="adb_screen_off_failed">Не удалось выключить экран: %1$s</string>
 </resources>

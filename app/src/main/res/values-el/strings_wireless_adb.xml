@@ -40,4 +40,11 @@
     <string name="adb_notification_action">Εισαγωγή κωδικού</string>
     <string name="adb_notification_input_label">6ψήφιος κωδικός</string>
     <string name="adb_notification_pairing">Σύζευξη με αυτό το τηλέφωνο…</string>
+    <string name="adb_screen_off_button">Απενεργοποίηση οθόνης</string>
+    <string name="adb_screen_on_button">Ενεργοποίηση οθόνης</string>
+    <string name="adb_screen_off_title">Να σβήσει η οθόνη για αυτή την εκτέλεση;</string>
+    <string name="adb_screen_off_explain">Η οθόνη σβήνει για να προστατευτεί από το κάψιμο (burn-in), αλλά το τηλέφωνο μένει ενεργό και ξεκλείδωτο, ώστε ο πράκτορας να συνεχίζει να χρησιμοποιεί το adb, τα στιγμιότυπα οθόνης και τα πατήματα. Ανάβει ξανά όταν τελειώσει η εκτέλεση. Για να τη δείτε νωρίτερα, πατήστε δύο φορές το κουμπί λειτουργίας· το τηλέφωνο θα κλειδωθεί.</string>
+    <string name="adb_screen_off_done">Η οθόνη είναι σβηστή. Θα ανάψει ξανά όταν τελειώσει η εκτέλεση.</string>
+    <string name="adb_screen_on_done">Η οθόνη άναψε ξανά.</string>
+    <string name="adb_screen_off_failed">Δεν ήταν δυνατό να σβήσει η οθόνη: %1$s</string>
 </resources>

@@ -93,6 +93,26 @@ class WirelessAdbTest {
     }
 
     @Test
+    fun screenPowerRunsThisApksEntryPointAsTheShellUser() {
+        val apk = "/data/app/~~kQ1Zr7==/com.jarves.mh-Xy9_A==/base.apk"
+        assertEquals(
+            "CLASSPATH='$apk' app_process /system/bin com.jarves.mh.adb.ScreenPowerMain hold",
+            screenPowerShellCommand(apk, "hold"),
+        )
+        assertTrue(screenPowerShellCommand(apk, "on").endsWith("ScreenPowerMain on"))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun screenPowerRejectsUnknownModes() {
+        screenPowerShellCommand("/data/app/base.apk", "off; reboot")
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun screenPowerRejectsPathsThatCouldBreakQuoting() {
+        screenPowerShellCommand("/data/app/it's/base.apk", "on")
+    }
+
+    @Test
     fun agentGuidanceForbidsTouchingTheConnectionAndAsksBeforeRiskyChanges() {
         assertTrue(ADB_AGENT_GUIDANCE.startsWith("<phone_adb>"))
         assertTrue(ADB_AGENT_GUIDANCE.endsWith("</phone_adb>"))

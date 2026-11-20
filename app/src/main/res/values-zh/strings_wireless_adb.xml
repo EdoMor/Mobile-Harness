@@ -40,4 +40,11 @@
     <string name="adb_notification_action">输入配对码</string>
     <string name="adb_notification_input_label">6 位配对码</string>
     <string name="adb_notification_pairing">正在与这部手机配对…</string>
+    <string name="adb_screen_off_button">关闭屏幕</string>
+    <string name="adb_screen_on_button">打开屏幕</string>
+    <string name="adb_screen_off_title">要在这次运行期间关闭屏幕吗？</string>
+    <string name="adb_screen_off_explain">屏幕会变黑以防止烧屏，但手机保持唤醒且不锁定，代理仍可继续使用 adb、截屏和点按。运行结束后屏幕会重新亮起。如需提前查看，请按两次电源键；手机将会锁定。</string>
+    <string name="adb_screen_off_done">屏幕已关闭。运行结束后会重新亮起。</string>
+    <string name="adb_screen_on_done">屏幕已重新亮起。</string>
+    <string name="adb_screen_off_failed">无法关闭屏幕：%1$s</string>
 </resources>

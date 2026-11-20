@@ -40,4 +40,11 @@
     <string name="adb_notification_action">Escribir código</string>
     <string name="adb_notification_input_label">Código de 6 dígitos</string>
     <string name="adb_notification_pairing">Emparejando con este teléfono…</string>
+    <string name="adb_screen_off_button">Apagar pantalla</string>
+    <string name="adb_screen_on_button">Encender pantalla</string>
+    <string name="adb_screen_off_title">¿Apagar la pantalla durante esta ejecución?</string>
+    <string name="adb_screen_off_explain">La pantalla se oscurece para protegerla del desgaste (burn-in), pero el teléfono sigue activo y desbloqueado, así que el agente puede seguir usando adb, capturas de pantalla y toques. Se vuelve a encender cuando termina la ejecución. Para verla antes, pulsa dos veces el botón de encendido; el teléfono quedará bloqueado.</string>
+    <string name="adb_screen_off_done">La pantalla está apagada. Se volverá a encender cuando termine la ejecución.</string>
+    <string name="adb_screen_on_done">La pantalla vuelve a estar encendida.</string>
+    <string name="adb_screen_off_failed">No se pudo apagar la pantalla: %1$s</string>
 </resources>

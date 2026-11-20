@@ -1,9 +1,14 @@
 package com.jarves.mh.runtime
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import android.os.Build
+import android.os.PowerManager
+import androidx.core.content.ContextCompat
 import com.jarves.mh.R
 import com.jarves.mh.ui.AppStrings
 import java.io.File
@@ -16,12 +21,15 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -80,6 +88,16 @@ internal val ADB_AGENT_GUIDANCE = """
 internal fun adbAgentGuidance(context: Context): String? =
     ADB_AGENT_GUIDANCE.takeIf { WirelessAdbManager.get(context).isAgentAccessEnabled() }
 
+/**
+ * The device-side command that runs [com.jarves.mh.adb.ScreenPowerMain] from this app's own APK
+ * as Android's shell user. Only "off", "on" and "hold" are accepted.
+ */
+internal fun screenPowerShellCommand(apkPath: String, mode: String): String {
+    require(mode in setOf("off", "on", "hold")) { "Unknown screen power mode" }
+    require(apkPath.startsWith("/") && '\'' !in apkPath && apkPath.none(Char::isWhitespace)) { "Unexpected APK path" }
+    return "CLASSPATH='$apkPath' app_process /system/bin com.jarves.mh.adb.ScreenPowerMain $mode"
+}
+
 /** The serial adb gives a wireless-debugging connection to this phone itself. */
 internal fun localAdbSerial(port: Int): String = "127.0.0.1:$port"
 
@@ -122,6 +140,8 @@ data class WirelessAdbState(
     val connectedSerial: String? = null,
     val shellUid: String? = null,
     val agentAccess: Boolean = false,
+    /** The display panel is powered off while the phone stays awake (see [ScreenPowerMain]). */
+    val screenOff: Boolean = false,
     val message: String? = null,
     val isError: Boolean = false,
 )
@@ -140,6 +160,10 @@ class WirelessAdbManager private constructor(private val context: Context) {
     private val serverLog = File(context.filesDir, "wireless-adb/server.log")
     private val workspace = File(context.filesDir, "workspaces/wireless-adb")
     @Volatile private var server: Process? = null
+    @Volatile private var screenHold: Process? = null
+    private var screenWakeLock: PowerManager.WakeLock? = null
+    private var sleepReceiver: BroadcastReceiver? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val _state = MutableStateFlow(WirelessAdbState())
     val state: StateFlow<WirelessAdbState> = _state.asStateFlow()
 
@@ -232,9 +256,144 @@ class WirelessAdbManager private constructor(private val context: Context) {
                 val serial = savedSerial()
                 val connected = isServerListening() && serial != null &&
                     parseAdbDevices(runAdb(listOf("devices"), 5_000L).second)[serial] == "device"
-                if (!connected) connect()
+                if (connected) _state.update { it.copy(connectedSerial = serial) } else connect()
             }
         }
+    }
+
+    /**
+     * Powers the display panel off for a long run, to protect an OLED screen from burn-in,
+     * while the phone stays awake and unlocked so the agent can keep using adb, screenshots
+     * and taps. A screen wake lock stops the screen timeout from sleeping (and locking) the
+     * phone, and [ScreenPowerMain] `hold` keeps the panel off through rotations.
+     */
+    suspend fun turnScreenOff(): WirelessAdbResult = exclusive {
+        requireInstalled()
+        ensureServer()
+        val serial = connectedSerialOrConnect()
+        stopScreenHoldLocked(restore = false)
+        val log = File(context.filesDir, "wireless-adb/screen.log").apply { parentFile?.mkdirs(); delete() }
+        acquireScreenWakeLock()
+        val hold = installer.process(
+            installer.installedRuntime().proot,
+            installer.installedRuntime().rootfs,
+            workspace,
+            adbEnvironment(),
+            listOf(RuntimeInstaller.ADB_GUEST_BINARY, "-s", serial, "shell", screenPowerCommand("hold")),
+            guestWorkspacePath = GUEST_WORKSPACE,
+            outputFile = log,
+        )
+        screenHold = hold
+        // Starting app_process with this APK on its class path takes a moment. Wait for the
+        // first "holding" line, which comes only after the panel really turned off.
+        var started = false
+        for (attempt in 0 until 75) {
+            if (runCatching { log.readTailText(4_096) }.getOrDefault("").contains("holding")) {
+                started = true
+                break
+            }
+            if (!hold.isAlive) break
+            delay(200)
+        }
+        if (!started) {
+            val detail = adbFailureDetail(runCatching { log.readTailText(4_096) }.getOrDefault(""))
+            stopScreenHoldLocked(restore = true)
+            error(str(R.string.adb_screen_off_failed, detail.ifBlank { "no response" }))
+        }
+        watchForRealSleep()
+        scope.launch {
+            // If the hold ends on its own (adb dropped, phone rebooted adbd), stop claiming it is off.
+            runCatching { hold.waitFor() }
+            if (screenHold === hold) endScreenOffAfterRun()
+        }
+        _state.update { it.copy(screenOff = true) }
+        WirelessAdbResult(true, str(R.string.adb_screen_off_done))
+    }
+
+    /** Powers the display panel back on and lets the screen time out normally again. */
+    suspend fun turnScreenOn(): WirelessAdbResult = exclusive {
+        stopScreenHoldLocked(restore = true)
+        WirelessAdbResult(true, str(R.string.adb_screen_on_done))
+    }
+
+    /** Fire-and-forget [turnScreenOff], for the running-task notification. */
+    fun turnScreenOffInBackground() {
+        scope.launch { turnScreenOff() }
+    }
+
+    /** Called when a run ends, is stopped, or its service goes away: never leave the panel dark. */
+    fun endScreenOffAfterRun() {
+        if (screenHold == null && screenWakeLock == null && !_state.value.screenOff) return
+        scope.launch { turnScreenOn() }
+    }
+
+    private suspend fun connectedSerialOrConnect(): String {
+        val saved = savedSerial()
+        if (saved != null && parseAdbDevices(runAdb(listOf("devices"), 10_000L).second)[saved] == "device") return saved
+        connectLocked(null)
+        return savedSerial() ?: error(str(R.string.adb_connect_port_not_found))
+    }
+
+    private fun screenPowerCommand(mode: String): String =
+        screenPowerShellCommand(context.applicationInfo.sourceDir, mode)
+
+    /** Must run inside [exclusive]. */
+    private fun stopScreenHoldLocked(restore: Boolean) {
+        val hold = screenHold
+        screenHold = null
+        if (hold != null && hold.isAlive) hold.destroy()
+        if (restore && installer.isWirelessAdbInstalled() && isServerListening()) {
+            savedSerial()?.let { serial ->
+                runCatching { runAdb(listOf("-s", serial, "shell", screenPowerCommand("on")), 20_000L) }
+            }
+        }
+        sleepReceiver?.let { receiver -> runCatching { context.unregisterReceiver(receiver) } }
+        sleepReceiver = null
+        screenWakeLock?.takeIf { it.isHeld }?.release()
+        screenWakeLock = null
+        _state.update { it.copy(screenOff = false) }
+    }
+
+    private fun acquireScreenWakeLock() {
+        if (screenWakeLock?.isHeld == true) return
+        // A screen-level wake lock (not just a partial one) is what stops the screen timeout
+        // from sleeping and locking the phone; the panel itself is off, so nothing is lit.
+        @Suppress("DEPRECATION")
+        val flags = PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ON_AFTER_RELEASE
+        screenWakeLock = context.getSystemService(PowerManager::class.java)
+            .newWakeLock(flags, "com.jarves.mh:adb-screen-off")
+            .apply {
+                setReferenceCounted(false)
+                acquire(SCREEN_OFF_MAX_MS)
+            }
+    }
+
+    /**
+     * Only a real sleep sends ACTION_SCREEN_OFF (powering the panel off does not). If the phone
+     * goes to sleep, for example because you pressed the power button, end screen-off mode so
+     * the next wake shows the screen normally instead of being turned dark again.
+     */
+    private fun watchForRealSleep() {
+        if (sleepReceiver != null) return
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action == Intent.ACTION_SCREEN_OFF) {
+                    scope.launch {
+                        exclusive {
+                            stopScreenHoldLocked(restore = false)
+                            WirelessAdbResult(true, str(R.string.adb_screen_on_done))
+                        }
+                    }
+                }
+            }
+        }
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            IntentFilter(Intent.ACTION_SCREEN_OFF),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+        sleepReceiver = receiver
     }
 
     private suspend fun connectLocked(port: Int?): WirelessAdbResult {
@@ -411,6 +570,8 @@ class WirelessAdbManager private constructor(private val context: Context) {
 
     companion object {
         private const val KEY_LAST_PORT = "last_connect_port"
+        /** Upper bound so a forgotten screen-off cannot keep the phone awake indefinitely. */
+        private const val SCREEN_OFF_MAX_MS = 24L * 60 * 60 * 1_000
         private const val GUEST_WORKSPACE = "/workspace/wireless-adb"
 
         @Volatile private var instance: WirelessAdbManager? = null

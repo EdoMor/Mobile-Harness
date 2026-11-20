@@ -9,17 +9,24 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PhonelinkOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -217,6 +224,66 @@ fun WirelessAdbSection() {
             color = if (state.isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+}
+
+/**
+ * Composer button for long runs that use adb: powers the display panel off so an OLED screen
+ * cannot burn in, while the phone stays awake and unlocked for the agent. Renders nothing
+ * unless Wireless ADB is connected. The screen comes back when the run ends.
+ */
+@Composable
+fun AdbScreenOffButton() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val manager = remember { WirelessAdbManager.get(context) }
+    val state by manager.state.collectAsStateWithLifecycle()
+    var confirm by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { manager.refresh() }
+    if (state.connectedSerial == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+
+    if (confirm) {
+        AlertDialog(
+            onDismissRequest = { confirm = false },
+            title = { Text(stringResource(R.string.adb_screen_off_title)) },
+            text = { Text(stringResource(R.string.adb_screen_off_explain)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirm = false
+                    scope.launch {
+                        val result = manager.turnScreenOff()
+                        if (!result.success) context.adbToast(result.message)
+                    }
+                }) { Text(stringResource(R.string.adb_screen_off_button)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirm = false }) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .size(38.dp)
+            .background(color = MaterialTheme.colorScheme.surfaceVariant, shape = CircleShape)
+            .clickable(enabled = !state.busy) {
+                if (state.screenOff) scope.launch { manager.turnScreenOn() } else confirm = true
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        if (state.busy) {
+            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+        } else {
+            Icon(
+                imageVector = Icons.Default.PhonelinkOff,
+                contentDescription = stringResource(
+                    if (state.screenOff) R.string.adb_screen_on_button else R.string.adb_screen_off_button,
+                ),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+    Spacer(Modifier.width(6.dp))
 }
 
 /** Opens Developer options, scrolled to Wireless debugging where the Settings app supports it. */

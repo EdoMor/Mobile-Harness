@@ -40,4 +40,11 @@
     <string name="adb_notification_action">Enter code</string>
     <string name="adb_notification_input_label">6-digit code</string>
     <string name="adb_notification_pairing">Pairing with this phone…</string>
+    <string name="adb_screen_off_button">Turn screen off</string>
+    <string name="adb_screen_on_button">Turn screen on</string>
+    <string name="adb_screen_off_title">Turn the screen off for this run?</string>
+    <string name="adb_screen_off_explain">The display goes dark to protect it from burn-in, but the phone stays awake and unlocked, so the agent can keep using adb, screenshots and taps. It turns back on when the run ends. To see it sooner, press the power button twice; the phone will be locked.</string>
+    <string name="adb_screen_off_done">Screen is off. It turns back on when the run ends.</string>
+    <string name="adb_screen_on_done">Screen is back on.</string>
+    <string name="adb_screen_off_failed">Could not turn the screen off: %1$s</string>
 </resources>
