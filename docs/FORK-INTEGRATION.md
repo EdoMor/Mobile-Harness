@@ -19,6 +19,11 @@ with the best work from its forks. Last refreshed 2026-11-19, when upstream `mai
 
 Behaviour change to know about: because of `196e9156c5`, a provider endpoint that answers with an HTTP redirect now fails instead of following it. Use the provider's final URL.
 
+## Added in this fork
+
+- **Claude auto-resume.** When a Claude Code run reaches its turn limit or hits a temporary network or provider error, the app reopens the same conversation with `--resume` and continues. Credential, quota and rate-limit errors still stop the task.
+- **Wireless ADB** (Settings → Wireless ADB). The app installs a static ARM64 `adb` 35.0.2 into the Linux environment (from [lzhiyong/android-sdk-tools](https://github.com/lzhiyong/android-sdk-tools), pinned by SHA-256). It then pairs and connects that `adb` to the phone's own Wireless debugging (Android 11+, Wi‑Fi). You type the pairing code into a notification, so Android's pairing dialog stays open. Ports are found over mDNS. Agents get `adb` only after you turn on **Let agents use adb**. They run as the Android shell user, and are told to ask before risky changes.
+
 ## Considered and left out
 
 The forks were found by scanning all ~450 GitHub forks, not only the ones with pull requests.

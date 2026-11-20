@@ -66,5 +66,8 @@
         <receiver
             android:name=".runtime.AndroidAppInstallReceiver"
             android:exported="false" />
+        <receiver
+            android:name=".runtime.WirelessAdbPairingReceiver"
+            android:exported="false" />
     </application>
 </manifest>

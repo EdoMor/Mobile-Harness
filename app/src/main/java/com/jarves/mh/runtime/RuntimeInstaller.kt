@@ -84,6 +84,7 @@ class RuntimeInstaller(private val context: Context) {
     private val dshMarker = File(rootfs, ".pocket-dsh-version")
     private val agyMarker = File(rootfs, ".pocket-agy-version")
     private val githubCliMarker = File(rootfs, ".pocket-github-cli-version")
+    private val wirelessAdbMarker = File(rootfs, ".pocket-adb-version")
     private val dshAndroidCompatibilityMarker = File(rootfs, ".pocket-dsh-android-compat-version")
     private val macosMetadataRepairMarker = File(rootfs, ".pocket-macos-metadata-repair")
 
@@ -348,6 +349,72 @@ class RuntimeInstaller(private val context: Context) {
         githubCliMarker.writeText(GITHUB_CLI_VERSION)
         check(isGitHubCliInstalled()) { "GitHub CLI installation is incomplete" }
         onProgress(RuntimeInstallProgress(str(R.string.rt_install_ready, "GitHub CLI"), 1f))
+    }
+
+    fun isWirelessAdbInstalled(): Boolean = isInstalled() &&
+        File(rootfs, ADB_GUEST_BINARY.removePrefix("/")).canExecute() &&
+        File(rootfs, ADB_GUEST_WRAPPER.removePrefix("/")).canExecute() &&
+        wirelessAdbMarker.readTextOrNull() == ADB_TOOLS_VERSION
+
+    /**
+     * Installs a static ARM64 `adb` (platform-tools [ADB_TOOLS_VERSION], built from AOSP by
+     * lzhiyong/android-sdk-tools) on demand. Google publishes Linux platform-tools for x86-64
+     * only, and Ubuntu 20.04's own adb predates wireless pairing. Both the archive and the
+     * extracted binary are checked against pinned SHA-256 values before anything runs.
+     */
+    suspend fun ensureWirelessAdbInstalled(onProgress: suspend (RuntimeInstallProgress) -> Unit) {
+        if (isWirelessAdbInstalled()) return
+        check(!BuildConfig.OFFLINE_RUNTIME_BUNDLES) { str(R.string.adb_needs_online) }
+        writeResolver()
+        downloads.mkdirs()
+        val downloaded = File(downloads, "android-sdk-tools-static-aarch64-$ADB_TOOLS_VERSION.zip")
+        val label = str(R.string.rt_install_downloading_version, "ADB", ADB_TOOLS_VERSION)
+        onProgress(RuntimeInstallProgress(label, 0.05f))
+        downloadVerified(ADB_TOOLS_URL, downloaded, ADB_TOOLS_SHA256) { bytes, total ->
+            val ratio = if (total > 0L) bytes.toFloat() / total else 0f
+            onProgress(
+                RuntimeInstallProgress(
+                    message = label,
+                    fraction = 0.05f + ratio * 0.75f,
+                    downloadedBytes = bytes,
+                    totalBytes = total.takeIf { it > 0L },
+                    event = RuntimeInstallEvent.DOWNLOAD,
+                ),
+            )
+        }
+        onProgress(RuntimeInstallProgress(str(R.string.rt_install_installing_version, "ADB", ADB_TOOLS_VERSION), 0.85f, indeterminate = true))
+        val binary = File(rootfs, ADB_GUEST_BINARY.removePrefix("/"))
+        binary.parentFile?.mkdirs()
+        val staged = File(binary.parentFile, ".adb-$ADB_TOOLS_VERSION.installing")
+        var found = false
+        ZipInputStream(BufferedInputStream(downloaded.inputStream())).use { zip ->
+            var entry = zip.nextEntry
+            while (entry != null) {
+                if (!entry.isDirectory && entry.name.removePrefix("./") == "platform-tools/adb") {
+                    FileOutputStream(staged).use { zip.copyTo(it) }
+                    found = true
+                    break
+                }
+                entry = zip.nextEntry
+            }
+        }
+        check(found) { "The ADB archive did not contain platform-tools/adb" }
+        check(digest(staged, "SHA-256").equals(ADB_BINARY_SHA256, ignoreCase = true)) {
+            staged.delete()
+            str(R.string.rt_install_verify_failed, "ADB")
+        }
+        Os.chmod(staged.absolutePath, 0b111101101)
+        Os.rename(staged.absolutePath, binary.absolutePath)
+        val wrapper = File(rootfs, ADB_GUEST_WRAPPER.removePrefix("/"))
+        wrapper.parentFile?.mkdirs()
+        wrapper.writeText(adbWrapperScript())
+        Os.chmod(wrapper.absolutePath, 0b111101101)
+        File(rootfs, ADB_GUEST_STATE_DIR.removePrefix("/")).mkdirs()
+        downloaded.delete()
+        verifyGuest(proot = installedRuntime().proot, command = "$ADB_GUEST_BINARY version", failureMessage = str(R.string.rt_install_verify_failed, "ADB"))
+        wirelessAdbMarker.writeText(ADB_TOOLS_VERSION)
+        check(isWirelessAdbInstalled()) { "ADB installation is incomplete" }
+        onProgress(RuntimeInstallProgress(str(R.string.rt_install_ready, "ADB"), 1f))
     }
 
     /**
@@ -1939,6 +2006,14 @@ printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decis
     companion object {
         const val AGY_GUEST_PATH = "/root/.local/bin/agy"
         const val GITHUB_CLI_GUEST_PATH = "/root/.local/bin/gh"
+        const val ADB_TOOLS_VERSION = "35.0.2"
+        const val ADB_TOOLS_URL = "https://github.com/lzhiyong/android-sdk-tools/releases/download/35.0.2/android-sdk-tools-static-aarch64.zip"
+        const val ADB_TOOLS_SHA256 = "db1cea2c4454d5f9c5a802646b2d1cf560b4ee7badbe23e51ab8e1881bb50fc2"
+        const val ADB_BINARY_SHA256 = "da34ede1747352d93aff56e5132a943c0f67a5c5b3d0896ea77d3eb315923f1b"
+        /** The real adb. Only the app calls it directly; agents go through [ADB_GUEST_WRAPPER]. */
+        const val ADB_GUEST_BINARY = "/opt/pocket-adb/adb"
+        const val ADB_GUEST_WRAPPER = "/usr/local/bin/adb"
+        const val ADB_GUEST_STATE_DIR = "/root/.pocket-adb"
         private const val AGY_VERSION = "1.1.27"
         private const val AGY_RELEASE_URL = "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.1.27-5211191891591168/linux-arm/cli_linux_arm64.tar.gz"
         private const val AGY_RELEASE_SHA512 = "ed45f6930785aa4b42f14e07ace1c9d91a94fb76e760f54acbd7d3d3951e1f957fd456a0dae2a3124dd9a3b689bf7afb7c9303a3e4ba95037fc10063424d9bf9"

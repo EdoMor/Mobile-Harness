@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="adb_title">वायरलेस ADB</string>
+    <string name="adb_subtitle">एजेंट को adb से इस फ़ोन को नियंत्रित करने दें</string>
+    <string name="adb_intro">Linux एनवायरनमेंट के adb को इस फ़ोन की वायरलेस डीबगिंग से पेयर करता है, ताकि एजेंट ऐप इंस्टॉल कर सकें, लॉग पढ़ सकें, स्क्रीनशॉट ले सकें और स्क्रीन पर टैप कर सकें। इसके लिए Android 11 या नया वर्शन और Wi‑Fi चाहिए। सब कुछ फ़ोन पर ही रहता है।</string>
+    <string name="adb_requires_android_11">वायरलेस डीबगिंग के लिए Android 11 या नया वर्शन चाहिए।</string>
+    <string name="adb_runtime_needed">पहले Linux एनवायरनमेंट का सेटअप पूरा करें।</string>
+    <string name="adb_install">ADB इंस्टॉल करें</string>
+    <string name="adb_needs_online">यह ऑफ़लाइन बिल्ड ADB डाउनलोड नहीं कर सकता।</string>
+    <string name="adb_install_first">पहले ADB इंस्टॉल करें।</string>
+    <string name="adb_status_not_connected">इस फ़ोन से कनेक्ट नहीं है।</string>
+    <string name="adb_status_connected">%1$s से उपयोगकर्ता %2$s के रूप में कनेक्ट है</string>
+    <string name="adb_pair_button">इस फ़ोन को पेयर करें</string>
+    <string name="adb_connect_button">कनेक्ट करें</string>
+    <string name="adb_disconnect_button">डिसकनेक्ट करें</string>
+    <string name="adb_pair_steps">1. “इस फ़ोन को पेयर करें” पर टैप करें। डेवलपर विकल्प खुलेंगे और एक सूचना दिखेगी।\n2. वायरलेस डीबगिंग चालू करें, फिर “पेयरिंग कोड से डिवाइस पेयर करें” पर टैप करें।\n3. सूचनाएं नीचे खींचें और Mobile Harness की सूचना में 6 अंकों का कोड लिखें।\nएक बार पेयर करने के बाद, जब भी वायरलेस डीबगिंग दोबारा चालू करें, “कनेक्ट करें” पर टैप करें।</string>
+    <string name="adb_manual_toggle">मैन्युअल रूप से पेयर करें</string>
+    <string name="adb_manual_port">पेयरिंग पोर्ट</string>
+    <string name="adb_manual_code">पेयरिंग कोड</string>
+    <string name="adb_manual_pair">पेयर करें</string>
+    <string name="adb_invalid_port">“पेयरिंग कोड से डिवाइस पेयर करें” में दिखाया गया पोर्ट लिखें।</string>
+    <string name="adb_agent_access">एजेंट को adb इस्तेमाल करने दें</string>
+    <string name="adb_agent_access_hint">एजेंट इस फ़ोन पर shell उपयोगकर्ता के रूप में adb चलाते हैं।</string>
+    <string name="adb_agent_access_confirm_title">एजेंट को इस फ़ोन का नियंत्रण दें?</string>
+    <string name="adb_agent_access_warning">एजेंट ऐप इंस्टॉल और अनइंस्टॉल कर सकेंगे, अनुमतियां दे सकेंगे, सेटिंग बदल सकेंगे, सिस्टम लॉग पढ़ सकेंगे और स्क्रीन पर टैप या टाइप कर सकेंगे। ज़रूरत न हो तो इसे बंद रखें।</string>
+    <string name="adb_agent_access_confirm">चालू करें</string>
+    <string name="adb_working">काम चल रहा है…</string>
+    <string name="adb_notifications_needed">सूचनाएं बंद हैं, इसलिए मैन्युअल पेयरिंग इस्तेमाल करें: पेयरिंग डायलॉग को स्प्लिट स्क्रीन में खुला रखें और उसका पोर्ट और कोड यहां लिखें।</string>
+    <string name="adb_open_settings_failed">सेटिंग &gt; डेवलपर विकल्प &gt; वायरलेस डीबगिंग खोलें।</string>
+    <string name="adb_server_failed">adb सर्वर शुरू नहीं हो सका। %1$s</string>
+    <string name="adb_pairing_port_not_found">पेयरिंग सेवा नहीं मिली। “पेयरिंग कोड से डिवाइस पेयर करें” डायलॉग खुला रखें और फिर से कोशिश करें।</string>
+    <string name="adb_connect_port_not_found">वायरलेस डीबगिंग नहीं मिली। इसे डेवलपर विकल्प में चालू करें, Wi‑Fi से जुड़े रहें और “कनेक्ट करें” पर टैप करें।</string>
+    <string name="adb_invalid_code">6 अंकों का पेयरिंग कोड लिखें।</string>
+    <string name="adb_pair_failed">पेयरिंग विफल रही: %1$s</string>
+    <string name="adb_connect_failed">कनेक्ट नहीं हो सका: %1$s</string>
+    <string name="adb_connected_as">इस फ़ोन (%1$s) से उपयोगकर्ता %2$s के रूप में कनेक्ट है।</string>
+    <string name="adb_disconnected">इस फ़ोन से डिसकनेक्ट हो गया।</string>
+    <string name="adb_notification_title">वायरलेस डीबगिंग का पेयरिंग कोड लिखें</string>
+    <string name="adb_notification_text">वायरलेस डीबगिंग में “पेयरिंग कोड से डिवाइस पेयर करें” पर टैप करें, फिर 6 अंकों का कोड यहां लिखें।</string>
+    <string name="adb_notification_action">कोड लिखें</string>
+    <string name="adb_notification_input_label">6 अंकों का कोड</string>
+    <string name="adb_notification_pairing">इस फ़ोन से पेयर किया जा रहा है…</string>
+</resources>

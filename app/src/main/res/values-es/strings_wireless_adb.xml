@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="adb_title">ADB inalámbrico</string>
+    <string name="adb_subtitle">Deja que los agentes controlen este teléfono con adb</string>
+    <string name="adb_intro">Empareja adb del entorno Linux con la depuración inalámbrica de este teléfono, para que los agentes puedan instalar apps, leer registros, hacer capturas de pantalla y tocar la pantalla. Requiere Android 11 o posterior y Wi‑Fi. Todo se queda en el teléfono.</string>
+    <string name="adb_requires_android_11">La depuración inalámbrica requiere Android 11 o posterior.</string>
+    <string name="adb_runtime_needed">Primero termina de configurar el entorno Linux.</string>
+    <string name="adb_install">Instalar ADB</string>
+    <string name="adb_needs_online">Esta versión sin conexión no puede descargar ADB.</string>
+    <string name="adb_install_first">Primero instala ADB.</string>
+    <string name="adb_status_not_connected">No conectado a este teléfono.</string>
+    <string name="adb_status_connected">Conectado a %1$s como usuario %2$s</string>
+    <string name="adb_pair_button">Emparejar este teléfono</string>
+    <string name="adb_connect_button">Conectar</string>
+    <string name="adb_disconnect_button">Desconectar</string>
+    <string name="adb_pair_steps">1. Toca “Emparejar este teléfono”. Se abren las Opciones para desarrolladores y aparece una notificación.\n2. Activa la depuración inalámbrica y toca “Vincular dispositivo con código de sincronización”.\n3. Despliega las notificaciones y escribe el código de 6 dígitos en la notificación de Mobile Harness.\nTras emparejar una vez, toca Conectar cada vez que vuelvas a activar la depuración inalámbrica.</string>
+    <string name="adb_manual_toggle">Emparejar manualmente</string>
+    <string name="adb_manual_port">Puerto de emparejamiento</string>
+    <string name="adb_manual_code">Código de emparejamiento</string>
+    <string name="adb_manual_pair">Emparejar</string>
+    <string name="adb_invalid_port">Escribe el puerto que aparece en “Vincular dispositivo con código de sincronización”.</string>
+    <string name="adb_agent_access">Permitir que los agentes usen adb</string>
+    <string name="adb_agent_access_hint">Los agentes ejecutan adb como el usuario shell de este teléfono.</string>
+    <string name="adb_agent_access_confirm_title">¿Dar a los agentes el control de este teléfono?</string>
+    <string name="adb_agent_access_warning">Los agentes podrán instalar y desinstalar apps, conceder permisos, cambiar ajustes, leer los registros del sistema y tocar o escribir en la pantalla. Desactívalo cuando no lo necesites.</string>
+    <string name="adb_agent_access_confirm">Activar</string>
+    <string name="adb_working">Trabajando…</string>
+    <string name="adb_notifications_needed">Las notificaciones están desactivadas, así que usa Emparejar manualmente: mantén abierto el diálogo de emparejamiento en pantalla dividida y escribe aquí su puerto y su código.</string>
+    <string name="adb_open_settings_failed">Abre Ajustes &gt; Opciones para desarrolladores &gt; Depuración inalámbrica.</string>
+    <string name="adb_server_failed">No se pudo iniciar el servidor de adb. %1$s</string>
+    <string name="adb_pairing_port_not_found">No se encontró el servicio de emparejamiento. Mantén abierto el diálogo “Vincular dispositivo con código de sincronización” e inténtalo de nuevo.</string>
+    <string name="adb_connect_port_not_found">No se encontró la depuración inalámbrica. Actívala en Opciones para desarrolladores, mantente en Wi‑Fi y toca Conectar.</string>
+    <string name="adb_invalid_code">Escribe el código de emparejamiento de 6 dígitos.</string>
+    <string name="adb_pair_failed">Error al emparejar: %1$s</string>
+    <string name="adb_connect_failed">No se pudo conectar: %1$s</string>
+    <string name="adb_connected_as">Conectado a este teléfono (%1$s) como usuario %2$s.</string>
+    <string name="adb_disconnected">Desconectado de este teléfono.</string>
+    <string name="adb_notification_title">Escribe el código de emparejamiento de la depuración inalámbrica</string>
+    <string name="adb_notification_text">En Depuración inalámbrica, toca “Vincular dispositivo con código de sincronización” y escribe aquí el código de 6 dígitos.</string>
+    <string name="adb_notification_action">Escribir código</string>
+    <string name="adb_notification_input_label">Código de 6 dígitos</string>
+    <string name="adb_notification_pairing">Emparejando con este teléfono…</string>
+</resources>

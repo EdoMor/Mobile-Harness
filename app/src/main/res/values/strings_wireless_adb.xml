@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="adb_title">Wireless ADB</string>
+    <string name="adb_subtitle">Let agents control this phone with adb</string>
+    <string name="adb_intro">Pairs adb in the Linux environment with this phone’s Wireless debugging, so agents can install apps, read logs, take screenshots and tap the screen. Needs Android 11 or newer and Wi‑Fi. Everything stays on the phone.</string>
+    <string name="adb_requires_android_11">Wireless debugging needs Android 11 or newer.</string>
+    <string name="adb_runtime_needed">Finish setting up the Linux environment first.</string>
+    <string name="adb_install">Install ADB</string>
+    <string name="adb_needs_online">This offline build cannot download ADB.</string>
+    <string name="adb_install_first">Install ADB first.</string>
+    <string name="adb_status_not_connected">Not connected to this phone.</string>
+    <string name="adb_status_connected">Connected to %1$s as user %2$s</string>
+    <string name="adb_pair_button">Pair this phone</string>
+    <string name="adb_connect_button">Connect</string>
+    <string name="adb_disconnect_button">Disconnect</string>
+    <string name="adb_pair_steps">1. Tap “Pair this phone”. Developer options opens and a notification appears.\n2. Turn on Wireless debugging, then tap “Pair device with pairing code”.\n3. Pull down the notifications and type the 6-digit code into the Mobile Harness notification.\nAfter pairing once, tap Connect whenever you turn Wireless debugging back on.</string>
+    <string name="adb_manual_toggle">Pair by hand</string>
+    <string name="adb_manual_port">Pairing port</string>
+    <string name="adb_manual_code">Pairing code</string>
+    <string name="adb_manual_pair">Pair</string>
+    <string name="adb_invalid_port">Enter the port shown under “Pair device with pairing code”.</string>
+    <string name="adb_agent_access">Let agents use adb</string>
+    <string name="adb_agent_access_hint">Agents run adb as the shell user on this phone.</string>
+    <string name="adb_agent_access_confirm_title">Give agents control of this phone?</string>
+    <string name="adb_agent_access_warning">Agents will be able to install and uninstall apps, grant permissions, change settings, read system logs and tap or type on the screen. Turn this off when you do not need it.</string>
+    <string name="adb_agent_access_confirm">Turn on</string>
+    <string name="adb_working">Working…</string>
+    <string name="adb_notifications_needed">Notifications are off, so use Pair by hand: keep the pairing dialog open in split screen and type its port and code here.</string>
+    <string name="adb_open_settings_failed">Open Settings &gt; Developer options &gt; Wireless debugging.</string>
+    <string name="adb_server_failed">Could not start the adb server. %1$s</string>
+    <string name="adb_pairing_port_not_found">Could not find the pairing service. Keep the “Pair device with pairing code” dialog open, then try again.</string>
+    <string name="adb_connect_port_not_found">Could not find Wireless debugging. Turn it on in Developer options, stay on Wi‑Fi, then tap Connect.</string>
+    <string name="adb_invalid_code">Enter the 6-digit pairing code.</string>
+    <string name="adb_pair_failed">Pairing failed: %1$s</string>
+    <string name="adb_connect_failed">Could not connect: %1$s</string>
+    <string name="adb_connected_as">Connected to this phone (%1$s) as user %2$s.</string>
+    <string name="adb_disconnected">Disconnected from this phone.</string>
+    <string name="adb_notification_title">Type the Wireless debugging pairing code</string>
+    <string name="adb_notification_text">In Wireless debugging, tap “Pair device with pairing code”, then type the 6-digit code here.</string>
+    <string name="adb_notification_action">Enter code</string>
+    <string name="adb_notification_input_label">6-digit code</string>
+    <string name="adb_notification_pairing">Pairing with this phone…</string>
+</resources>

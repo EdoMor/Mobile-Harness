@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="adb_title">Ασύρματο ADB</string>
+    <string name="adb_subtitle">Οι πράκτορες ελέγχουν αυτό το τηλέφωνο με adb</string>
+    <string name="adb_intro">Συνδέει το adb του περιβάλλοντος Linux με τον ασύρματο εντοπισμό σφαλμάτων αυτού του τηλεφώνου, ώστε οι πράκτορες να εγκαθιστούν εφαρμογές, να διαβάζουν αρχεία καταγραφής, να τραβούν στιγμιότυπα οθόνης και να πατούν στην οθόνη. Απαιτεί Android 11 ή νεότερο και Wi‑Fi. Όλα μένουν στο τηλέφωνο.</string>
+    <string name="adb_requires_android_11">Ο ασύρματος εντοπισμός σφαλμάτων απαιτεί Android 11 ή νεότερο.</string>
+    <string name="adb_runtime_needed">Ολοκληρώστε πρώτα τη ρύθμιση του περιβάλλοντος Linux.</string>
+    <string name="adb_install">Εγκατάσταση ADB</string>
+    <string name="adb_needs_online">Αυτή η έκδοση εκτός σύνδεσης δεν μπορεί να κατεβάσει το ADB.</string>
+    <string name="adb_install_first">Εγκαταστήστε πρώτα το ADB.</string>
+    <string name="adb_status_not_connected">Δεν υπάρχει σύνδεση με αυτό το τηλέφωνο.</string>
+    <string name="adb_status_connected">Συνδέθηκε στο %1$s ως χρήστης %2$s</string>
+    <string name="adb_pair_button">Σύζευξη αυτού του τηλεφώνου</string>
+    <string name="adb_connect_button">Σύνδεση</string>
+    <string name="adb_disconnect_button">Αποσύνδεση</string>
+    <string name="adb_pair_steps">1. Πατήστε «Σύζευξη αυτού του τηλεφώνου». Ανοίγουν οι Επιλογές για προγραμματιστές και εμφανίζεται μια ειδοποίηση.\n2. Ενεργοποιήστε τον ασύρματο εντοπισμό σφαλμάτων και πατήστε «Σύζευξη συσκευής με κωδικό σύζευξης».\n3. Σύρετε προς τα κάτω τις ειδοποιήσεις και πληκτρολογήστε τον 6ψήφιο κωδικό στην ειδοποίηση του Mobile Harness.\nΜετά την πρώτη σύζευξη, πατήστε Σύνδεση κάθε φορά που ενεργοποιείτε ξανά τον ασύρματο εντοπισμό σφαλμάτων.</string>
+    <string name="adb_manual_toggle">Χειροκίνητη σύζευξη</string>
+    <string name="adb_manual_port">Θύρα σύζευξης</string>
+    <string name="adb_manual_code">Κωδικός σύζευξης</string>
+    <string name="adb_manual_pair">Σύζευξη</string>
+    <string name="adb_invalid_port">Πληκτρολογήστε τη θύρα που εμφανίζεται στη «Σύζευξη συσκευής με κωδικό σύζευξης».</string>
+    <string name="adb_agent_access">Οι πράκτορες μπορούν να χρησιμοποιούν το adb</string>
+    <string name="adb_agent_access_hint">Οι πράκτορες εκτελούν το adb ως χρήστης shell σε αυτό το τηλέφωνο.</string>
+    <string name="adb_agent_access_confirm_title">Να δοθεί στους πράκτορες ο έλεγχος αυτού του τηλεφώνου;</string>
+    <string name="adb_agent_access_warning">Οι πράκτορες θα μπορούν να εγκαθιστούν και να απεγκαθιστούν εφαρμογές, να παραχωρούν άδειες, να αλλάζουν ρυθμίσεις, να διαβάζουν αρχεία καταγραφής του συστήματος και να πατούν ή να πληκτρολογούν στην οθόνη. Απενεργοποιήστε το όταν δεν το χρειάζεστε.</string>
+    <string name="adb_agent_access_confirm">Ενεργοποίηση</string>
+    <string name="adb_working">Σε εξέλιξη…</string>
+    <string name="adb_notifications_needed">Οι ειδοποιήσεις είναι απενεργοποιημένες, οπότε χρησιμοποιήστε τη χειροκίνητη σύζευξη: κρατήστε ανοιχτό το παράθυρο σύζευξης σε διαχωρισμό οθόνης και πληκτρολογήστε εδώ τη θύρα και τον κωδικό του.</string>
+    <string name="adb_open_settings_failed">Ανοίξτε Ρυθμίσεις &gt; Επιλογές για προγραμματιστές &gt; Ασύρματος εντοπισμός σφαλμάτων.</string>
+    <string name="adb_server_failed">Δεν ήταν δυνατή η εκκίνηση του διακομιστή adb. %1$s</string>
+    <string name="adb_pairing_port_not_found">Δεν βρέθηκε η υπηρεσία σύζευξης. Κρατήστε ανοιχτό το παράθυρο «Σύζευξη συσκευής με κωδικό σύζευξης» και δοκιμάστε ξανά.</string>
+    <string name="adb_connect_port_not_found">Δεν βρέθηκε ο ασύρματος εντοπισμός σφαλμάτων. Ενεργοποιήστε τον στις Επιλογές για προγραμματιστές, μείνετε συνδεδεμένοι στο Wi‑Fi και πατήστε Σύνδεση.</string>
+    <string name="adb_invalid_code">Πληκτρολογήστε τον 6ψήφιο κωδικό σύζευξης.</string>
+    <string name="adb_pair_failed">Η σύζευξη απέτυχε: %1$s</string>
+    <string name="adb_connect_failed">Η σύνδεση απέτυχε: %1$s</string>
+    <string name="adb_connected_as">Συνδέθηκε σε αυτό το τηλέφωνο (%1$s) ως χρήστης %2$s.</string>
+    <string name="adb_disconnected">Αποσυνδέθηκε από αυτό το τηλέφωνο.</string>
+    <string name="adb_notification_title">Πληκτρολογήστε τον κωδικό σύζευξης του ασύρματου εντοπισμού σφαλμάτων</string>
+    <string name="adb_notification_text">Στον Ασύρματο εντοπισμό σφαλμάτων, πατήστε «Σύζευξη συσκευής με κωδικό σύζευξης» και πληκτρολογήστε εδώ τον 6ψήφιο κωδικό.</string>
+    <string name="adb_notification_action">Εισαγωγή κωδικού</string>
+    <string name="adb_notification_input_label">6ψήφιος κωδικός</string>
+    <string name="adb_notification_pairing">Σύζευξη με αυτό το τηλέφωνο…</string>
+</resources>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="adb_title">ADB لاسلكي</string>
+    <string name="adb_subtitle">اسمح للوكلاء بالتحكم في هذا الهاتف عبر adb</string>
+    <string name="adb_intro">يقرن adb في بيئة Linux بتصحيح الأخطاء اللاسلكي في هذا الهاتف، ليتمكن الوكلاء من تثبيت التطبيقات وقراءة السجلات والتقاط لقطات الشاشة والنقر على الشاشة. يتطلب Android 11 أو أحدث وشبكة Wi‑Fi. يبقى كل شيء على الهاتف.</string>
+    <string name="adb_requires_android_11">يتطلب تصحيح الأخطاء اللاسلكي Android 11 أو أحدث.</string>
+    <string name="adb_runtime_needed">أكمل إعداد بيئة Linux أولًا.</string>
+    <string name="adb_install">تثبيت ADB</string>
+    <string name="adb_needs_online">لا يمكن لهذا الإصدار غير المتصل تنزيل ADB.</string>
+    <string name="adb_install_first">ثبّت ADB أولًا.</string>
+    <string name="adb_status_not_connected">غير متصل بهذا الهاتف.</string>
+    <string name="adb_status_connected">متصل بـ %1$s بصفة المستخدم %2$s</string>
+    <string name="adb_pair_button">إقران هذا الهاتف</string>
+    <string name="adb_connect_button">اتصال</string>
+    <string name="adb_disconnect_button">قطع الاتصال</string>
+    <string name="adb_pair_steps">1. انقر على “إقران هذا الهاتف”. ستُفتح خيارات المطوّرين ويظهر إشعار.\n2. فعّل تصحيح الأخطاء اللاسلكي، ثم انقر على “إقران الجهاز باستخدام رمز الإقران”.\n3. اسحب الإشعارات لأسفل واكتب الرمز المكوّن من 6 أرقام في إشعار Mobile Harness.\nبعد الإقران مرة واحدة، انقر على “اتصال” كلما أعدت تفعيل تصحيح الأخطاء اللاسلكي.</string>
+    <string name="adb_manual_toggle">إقران يدوي</string>
+    <string name="adb_manual_port">منفذ الإقران</string>
+    <string name="adb_manual_code">رمز الإقران</string>
+    <string name="adb_manual_pair">إقران</string>
+    <string name="adb_invalid_port">اكتب المنفذ الظاهر في “إقران الجهاز باستخدام رمز الإقران”.</string>
+    <string name="adb_agent_access">السماح للوكلاء باستخدام adb</string>
+    <string name="adb_agent_access_hint">يشغّل الوكلاء adb بصفة مستخدم shell على هذا الهاتف.</string>
+    <string name="adb_agent_access_confirm_title">هل تمنح الوكلاء التحكم في هذا الهاتف؟</string>
+    <string name="adb_agent_access_warning">سيتمكن الوكلاء من تثبيت التطبيقات وإلغاء تثبيتها ومنح الأذونات وتغيير الإعدادات وقراءة سجلات النظام والنقر أو الكتابة على الشاشة. أوقف هذا الخيار عندما لا تحتاج إليه.</string>
+    <string name="adb_agent_access_confirm">تفعيل</string>
+    <string name="adb_working">جارٍ العمل…</string>
+    <string name="adb_notifications_needed">الإشعارات متوقفة، لذا استخدم الإقران اليدوي: أبقِ نافذة الإقران مفتوحة في وضع تقسيم الشاشة واكتب منفذها ورمزها هنا.</string>
+    <string name="adb_open_settings_failed">افتح الإعدادات &gt; خيارات المطوّرين &gt; تصحيح الأخطاء اللاسلكي.</string>
+    <string name="adb_server_failed">تعذّر تشغيل خادم adb. %1$s</string>
+    <string name="adb_pairing_port_not_found">تعذّر العثور على خدمة الإقران. أبقِ نافذة “إقران الجهاز باستخدام رمز الإقران” مفتوحة وحاول مرة أخرى.</string>
+    <string name="adb_connect_port_not_found">تعذّر العثور على تصحيح الأخطاء اللاسلكي. فعّله من خيارات المطوّرين، وابقَ متصلًا بشبكة Wi‑Fi، ثم انقر على “اتصال”.</string>
+    <string name="adb_invalid_code">اكتب رمز الإقران المكوّن من 6 أرقام.</string>
+    <string name="adb_pair_failed">فشل الإقران: %1$s</string>
+    <string name="adb_connect_failed">تعذّر الاتصال: %1$s</string>
+    <string name="adb_connected_as">متصل بهذا الهاتف (%1$s) بصفة المستخدم %2$s.</string>
+    <string name="adb_disconnected">تم قطع الاتصال بهذا الهاتف.</string>
+    <string name="adb_notification_title">اكتب رمز إقران تصحيح الأخطاء اللاسلكي</string>
+    <string name="adb_notification_text">في تصحيح الأخطاء اللاسلكي، انقر على “إقران الجهاز باستخدام رمز الإقران”، ثم اكتب الرمز المكوّن من 6 أرقام هنا.</string>
+    <string name="adb_notification_action">إدخال الرمز</string>
+    <string name="adb_notification_input_label">رمز من 6 أرقام</string>
+    <string name="adb_notification_pairing">جارٍ الإقران بهذا الهاتف…</string>
+</resources>

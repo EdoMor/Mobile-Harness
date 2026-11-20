@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="adb_title">Беспроводной ADB</string>
+    <string name="adb_subtitle">Агенты управляют этим телефоном через adb</string>
+    <string name="adb_intro">Связывает adb в среде Linux с отладкой по Wi‑Fi на этом телефоне, чтобы агенты могли устанавливать приложения, читать журналы, делать снимки экрана и нажимать на экран. Нужны Android 11 или новее и Wi‑Fi. Всё остаётся на телефоне.</string>
+    <string name="adb_requires_android_11">Для отладки по Wi‑Fi нужен Android 11 или новее.</string>
+    <string name="adb_runtime_needed">Сначала завершите настройку среды Linux.</string>
+    <string name="adb_install">Установить ADB</string>
+    <string name="adb_needs_online">Эта офлайн-сборка не может скачать ADB.</string>
+    <string name="adb_install_first">Сначала установите ADB.</string>
+    <string name="adb_status_not_connected">Нет подключения к этому телефону.</string>
+    <string name="adb_status_connected">Подключено к %1$s как пользователь %2$s</string>
+    <string name="adb_pair_button">Связать этот телефон</string>
+    <string name="adb_connect_button">Подключить</string>
+    <string name="adb_disconnect_button">Отключить</string>
+    <string name="adb_pair_steps">1. Нажмите «Связать этот телефон». Откроются настройки для разработчиков и появится уведомление.\n2. Включите отладку по Wi‑Fi и нажмите «Подключить устройство с помощью кода подключения».\n3. Откройте шторку уведомлений и введите 6-значный код в уведомлении Mobile Harness.\nПосле первого связывания нажимайте «Подключить» каждый раз, когда снова включаете отладку по Wi‑Fi.</string>
+    <string name="adb_manual_toggle">Связать вручную</string>
+    <string name="adb_manual_port">Порт связывания</string>
+    <string name="adb_manual_code">Код связывания</string>
+    <string name="adb_manual_pair">Связать</string>
+    <string name="adb_invalid_port">Введите порт, указанный в окне «Подключить устройство с помощью кода подключения».</string>
+    <string name="adb_agent_access">Разрешить агентам использовать adb</string>
+    <string name="adb_agent_access_hint">Агенты запускают adb от имени пользователя shell на этом телефоне.</string>
+    <string name="adb_agent_access_confirm_title">Дать агентам управление этим телефоном?</string>
+    <string name="adb_agent_access_warning">Агенты смогут устанавливать и удалять приложения, выдавать разрешения, менять настройки, читать системные журналы, нажимать на экран и вводить текст. Отключайте это, когда оно не нужно.</string>
+    <string name="adb_agent_access_confirm">Включить</string>
+    <string name="adb_working">Выполняется…</string>
+    <string name="adb_notifications_needed">Уведомления отключены, поэтому используйте связывание вручную: держите окно связывания открытым в режиме разделённого экрана и введите здесь его порт и код.</string>
+    <string name="adb_open_settings_failed">Откройте Настройки &gt; Для разработчиков &gt; Отладка по Wi‑Fi.</string>
+    <string name="adb_server_failed">Не удалось запустить сервер adb. %1$s</string>
+    <string name="adb_pairing_port_not_found">Сервис связывания не найден. Держите окно «Подключить устройство с помощью кода подключения» открытым и повторите попытку.</string>
+    <string name="adb_connect_port_not_found">Отладка по Wi‑Fi не найдена. Включите её в настройках для разработчиков, оставайтесь в сети Wi‑Fi и нажмите «Подключить».</string>
+    <string name="adb_invalid_code">Введите 6-значный код связывания.</string>
+    <string name="adb_pair_failed">Не удалось связать: %1$s</string>
+    <string name="adb_connect_failed">Не удалось подключиться: %1$s</string>
+    <string name="adb_connected_as">Подключено к этому телефону (%1$s) как пользователь %2$s.</string>
+    <string name="adb_disconnected">Отключено от этого телефона.</string>
+    <string name="adb_notification_title">Введите код связывания для отладки по Wi‑Fi</string>
+    <string name="adb_notification_text">В разделе «Отладка по Wi‑Fi» нажмите «Подключить устройство с помощью кода подключения», затем введите здесь 6-значный код.</string>
+    <string name="adb_notification_action">Ввести код</string>
+    <string name="adb_notification_input_label">6-значный код</string>
+    <string name="adb_notification_pairing">Связывание с этим телефоном…</string>
+</resources>

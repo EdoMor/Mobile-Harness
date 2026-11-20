@@ -295,6 +295,7 @@ class ClaudeRuntimeBridge(
             // messages into the conversation.
             val installed = installer.installedRuntime()
             installer.ensureSettingsAndHooks()
+            WirelessAdbManager.get(context).ensureReadyForAgents()
             val workspace = ensureWorkspace(projectId)
             // A resumed run continues the same task: keep the checkpoint and baseline taken
             // when the task started, so Undo and the change list cover every run of it.
@@ -892,6 +893,7 @@ class ClaudeRuntimeBridge(
         sb.appendLine("For local servers, give a clear start command and never use a kill command that searches its own command text with pgrep, because it can terminate the terminal itself.")
         sb.appendLine("</project_workspace>")
         sb.appendLine()
+        adbAgentGuidance(context)?.let { guidance -> sb.appendLine(guidance).appendLine() }
         if (priorMessages.isEmpty()) {
             sb.appendLine(currentPrompt)
             return sb.toString()

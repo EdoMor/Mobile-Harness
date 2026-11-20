@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Adb
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
@@ -119,7 +120,7 @@ import com.jarves.mh.ui.theme.AppThemeMode
 import com.jarves.mh.ui.theme.PocketOrange
 import kotlinx.coroutines.launch
 
-private enum class SettingsSection { APPEARANCE, LANGUAGE, TOOLS, RUNTIME, DIAGNOSTICS, BACKUP, UPDATE_CHANNEL }
+private enum class SettingsSection { APPEARANCE, LANGUAGE, TOOLS, RUNTIME, DIAGNOSTICS, BACKUP, WIRELESS_ADB, UPDATE_CHANNEL }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -298,6 +299,18 @@ fun SettingsScreen(
                         busy = state.isRunning || state.projectTerminalRunning || state.androidBuildRunning ||
                             state.projectExportRunning || state.agentInstalling != null || state.devStackInstalling != null,
                     )
+                }
+            }
+
+            item {
+                SettingsAccordion(
+                    title = stringResource(R.string.adb_title),
+                    subtitle = stringResource(R.string.adb_subtitle),
+                    icon = Icons.Default.Adb,
+                    expanded = expanded == SettingsSection.WIRELESS_ADB,
+                    onClick = { toggle(SettingsSection.WIRELESS_ADB) },
+                ) {
+                    WirelessAdbSection()
                 }
             }
 
