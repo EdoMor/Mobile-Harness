@@ -50,4 +50,6 @@
     <string name="adb_pulse_dismiss_hint">انقر للإغلاق</string>
     <string name="adb_screen_woke_reason">عادت الشاشة للعمل: %1$s</string>
     <string name="adb_screen_woke_sleep">دخل الهاتف في وضع السكون، فانتهى وضع إيقاف الشاشة.</string>
+    <string name="adb_screen_report_copy">نسخ تقرير إيقاف الشاشة</string>
+    <string name="adb_screen_report_copied">تم نسخ تقرير إيقاف الشاشة</string>
 </resources>

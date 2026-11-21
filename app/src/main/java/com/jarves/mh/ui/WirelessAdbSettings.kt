@@ -1,6 +1,8 @@
 package com.jarves.mh.ui
 
 import android.Manifest
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -206,6 +208,17 @@ fun WirelessAdbSection() {
                     checked = state.agentAccess,
                     onCheckedChange = { enabled -> if (enabled) confirmAccess = true else manager.setAgentAccess(false) },
                 )
+            }
+
+            // After a screen-off attempt, offer its log so a problem on this phone can be reported.
+            val hasReport = remember(state.screenOff, state.message) { manager.screenOffReport() != null }
+            if (hasReport) {
+                TextButton(onClick = {
+                    val report = manager.screenOffReport() ?: return@TextButton
+                    context.getSystemService(ClipboardManager::class.java)
+                        ?.setPrimaryClip(ClipData.newPlainText("Screen-off report", report))
+                    context.adbToast(context.getString(R.string.adb_screen_report_copied))
+                }) { Text(stringResource(R.string.adb_screen_report_copy)) }
             }
         }
     }

@@ -50,4 +50,6 @@
     <string name="adb_pulse_dismiss_hint">Нажмите, чтобы закрыть</string>
     <string name="adb_screen_woke_reason">Экран снова включился: %1$s</string>
     <string name="adb_screen_woke_sleep">Телефон перешёл в спящий режим, поэтому режим выключенного экрана завершён.</string>
+    <string name="adb_screen_report_copy">Скопировать отчёт о выключении экрана</string>
+    <string name="adb_screen_report_copied">Отчёт о выключении экрана скопирован</string>
 </resources>

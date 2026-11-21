@@ -50,4 +50,6 @@
     <string name="adb_pulse_dismiss_hint">点按以关闭</string>
     <string name="adb_screen_woke_reason">屏幕重新亮起：%1$s</string>
     <string name="adb_screen_woke_sleep">手机已进入休眠，因此关闭屏幕模式已结束。</string>
+    <string name="adb_screen_report_copy">复制关闭屏幕报告</string>
+    <string name="adb_screen_report_copied">已复制关闭屏幕报告</string>
 </resources>

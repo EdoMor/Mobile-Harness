@@ -50,4 +50,6 @@
     <string name="adb_pulse_dismiss_hint">Tap to dismiss</string>
     <string name="adb_screen_woke_reason">The screen came back on: %1$s</string>
     <string name="adb_screen_woke_sleep">The phone went to sleep, so the screen-off mode ended.</string>
+    <string name="adb_screen_report_copy">Copy screen-off report</string>
+    <string name="adb_screen_report_copied">Screen-off report copied</string>
 </resources>

@@ -147,6 +147,42 @@ class WirelessAdbTest {
     }
 
     @Test
+    fun helperFailureIgnoresDisplayEventLines() {
+        // The helper now logs display events; those are not the reason it stopped.
+        val log = "0.0s panel off on Google Pixel 8, Android 15 (API 35)\nholding\n" +
+            "2.1s display 0 changed state=2 mode=2 refresh=60.0\n2.4s panel forced off again after a display change\nholding\n"
+        assertEquals("the screen-off helper stopped (exit 0)", screenHelperFailureDetail(log, 0))
+        val withWarning = "0.1s cannot watch display changes: java.lang.NoSuchMethodException: registerDisplayListener\n"
+        assertEquals("the screen-off helper stopped (exit 0)", screenHelperFailureDetail(withWarning + log, 0))
+        assertEquals("error: closed", screenHelperFailureDetail(log + "error: closed\n", 1))
+        assertEquals(
+            "screen power failed: java.lang.UnsatisfiedLinkError: Shared library already opened",
+            screenHelperFailureDetail(log + "screen power failed: java.lang.UnsatisfiedLinkError: Shared library already opened\n", 1),
+        )
+    }
+
+    @Test
+    fun screenOffReportCollapsesTheHeartbeat() {
+        val report = screenOffReportText(
+            listOf("Mobile Harness screen-off report", "App 1.0.10, Google Pixel 8, Android 15 (API 35)", ""),
+            "0.0s panel off on Google Pixel 8, Android 15 (API 35)\nholding\nholding\nholding\n" +
+                "3.2s display 0 changed state=2 refresh=60.0\nholding\n",
+        )
+        assertEquals(
+            listOf(
+                "Mobile Harness screen-off report",
+                "App 1.0.10, Google Pixel 8, Android 15 (API 35)",
+                "",
+                "0.0s panel off on Google Pixel 8, Android 15 (API 35)",
+                "(holding x3)",
+                "3.2s display 0 changed state=2 refresh=60.0",
+                "(holding x1)",
+            ).joinToString("\n"),
+            report,
+        )
+    }
+
+    @Test
     fun runEndWaitsLongerThanAnyAutomaticResume() {
         // Turn-limit resumes start after 2 s; network retries after 5 s, then 15 s.
         assertTrue(WirelessAdbManager.RUN_END_GRACE_MS > 15_000L)

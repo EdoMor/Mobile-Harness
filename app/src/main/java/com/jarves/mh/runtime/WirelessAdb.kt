@@ -114,14 +114,43 @@ internal fun pulseActivityShellCommand(packageName: String, token: String, faile
     return "am start -n $packageName/$PULSE_ACTIVITY_CLASS --es token $token --ez failed $failed"
 }
 
-/** Why the screen-off helper stopped: its last message other than the "holding" heartbeat. */
+/** Why the screen-off helper stopped: its last error line, else its exit code. */
 internal fun screenHelperFailureDetail(log: String, exitCode: Int?): String =
     log.lineSequence()
         .map(String::trim)
-        .lastOrNull { it.isNotEmpty() && it != "holding" }
+        .lastOrNull { line ->
+            // The helper's own fatal line, adb's errors, or a crash; not its informational log.
+            line.startsWith("screen power failed") || line.startsWith("error:", ignoreCase = true) ||
+                line.startsWith("Exception in thread") || line.startsWith("Aborted")
+        }
         ?.take(200)
         ?: exitCode?.let { "the screen-off helper stopped (exit $it)" }
         ?: "no response"
+
+/**
+ * A plain-text report of the last screen-off attempt: device and app details, then the
+ * helper's log with its one-second "holding" heartbeat collapsed into counts.
+ */
+internal fun screenOffReportText(header: List<String>, log: String): String {
+    val lines = ArrayList<String>(header)
+    var heartbeats = 0
+    fun flush() {
+        if (heartbeats > 0) lines += "(holding x$heartbeats)"
+        heartbeats = 0
+    }
+    for (raw in log.lineSequence()) {
+        val line = raw.trim()
+        if (line.isEmpty()) continue
+        if (line == "holding") {
+            heartbeats++
+        } else {
+            flush()
+            lines += line
+        }
+    }
+    flush()
+    return lines.joinToString("\n")
+}
 
 /** The serial adb gives a wireless-debugging connection to this phone itself. */
 internal fun localAdbSerial(port: Int): String = "127.0.0.1:$port"
@@ -304,7 +333,8 @@ class WirelessAdbManager private constructor(private val context: Context) {
         stopScreenHoldLocked(restore = false)
         val log = screenLog.apply { parentFile?.mkdirs(); delete() }
         acquireScreenWakeLock()
-        pauseAutoBrightness(serial)
+        // Switching auto-brightness off moves the backlight; let that finish before going dark.
+        if (pauseAutoBrightness(serial)) delay(BRIGHTNESS_SETTLE_MS)
         val hold = installer.process(
             installer.installedRuntime().proot,
             installer.installedRuntime().rootfs,
@@ -443,7 +473,7 @@ class WirelessAdbManager private constructor(private val context: Context) {
     private fun screenPowerCommand(mode: String): String =
         screenPowerShellCommand(context.applicationInfo.sourceDir, mode)
 
-    private fun readScreenLog(): String = runCatching { screenLog.readTailText(8_192) }.getOrDefault("")
+    private fun readScreenLog(maxBytes: Int = 8_192): String = runCatching { screenLog.readTailText(maxBytes) }.getOrDefault("")
 
     /**
      * Checks the helper every second. Polling avoids a blocking wait that a signal can cut
@@ -504,12 +534,32 @@ class WirelessAdbManager private constructor(private val context: Context) {
      * phones that re-lights a panel that was powered off. Pause it while the screen is off; the
      * flag is saved so the next start restores it even if the app was killed in between.
      */
-    private fun pauseAutoBrightness(serial: String) {
+    /** Returns true when auto-brightness was on and is now paused. */
+    private fun pauseAutoBrightness(serial: String): Boolean {
         val (exit, output) = runAdb(listOf("-s", serial, "shell", "settings get system screen_brightness_mode"), 10_000L)
         val mode = output.lineSequence().map(String::trim).lastOrNull { it.isNotEmpty() }
-        if (exit != 0 || mode != "1") return
+        if (exit != 0 || mode != "1") return false
         val (putExit, _) = runAdb(listOf("-s", serial, "shell", "settings put system screen_brightness_mode 0"), 10_000L)
-        if (putExit == 0) prefs.edit().putBoolean(KEY_RESTORE_AUTO_BRIGHTNESS, true).apply()
+        if (putExit != 0) return false
+        prefs.edit().putBoolean(KEY_RESTORE_AUTO_BRIGHTNESS, true).apply()
+        return true
+    }
+
+    /** The last screen-off attempt as text to copy, or null if screen-off was never used. */
+    fun screenOffReport(): String? {
+        val log = readScreenLog(128 * 1_024)
+        if (log.isBlank()) return null
+        val version = runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        }.getOrNull().orEmpty()
+        val header = listOf(
+            "Mobile Harness screen-off report",
+            "App $version, ${Build.MANUFACTURER} ${Build.MODEL}, Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
+            "Screen off now: ${_state.value.screenOff}",
+            "Last message: ${_state.value.message.orEmpty()}",
+            "",
+        )
+        return screenOffReportText(header, log)
     }
 
     private fun restoreAutoBrightness() {
@@ -729,6 +779,8 @@ class WirelessAdbManager private constructor(private val context: Context) {
         private const val KEY_RESTORE_AUTO_BRIGHTNESS = "restore_auto_brightness"
         /** Automatic resumes restart within 2 s (turn limit) or 5 s, then 15 s (network errors). */
         const val RUN_END_GRACE_MS = 20_000L
+        /** Time for the backlight to settle after auto-brightness is switched off. */
+        private const val BRIGHTNESS_SETTLE_MS = 2_000L
         /** Time for the pulse screen to draw its first black frame before the panel turns on. */
         private const val PULSE_SCREEN_SETTLE_MS = 800L
         /** Upper bound so a forgotten screen-off cannot keep the phone awake indefinitely. */

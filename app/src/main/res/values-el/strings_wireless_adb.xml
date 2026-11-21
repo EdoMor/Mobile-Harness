@@ -50,4 +50,6 @@
     <string name="adb_pulse_dismiss_hint">Πατήστε για κλείσιμο</string>
     <string name="adb_screen_woke_reason">Η οθόνη άναψε ξανά: %1$s</string>
     <string name="adb_screen_woke_sleep">Το τηλέφωνο έπεσε σε αναστολή λειτουργίας, οπότε η λειτουργία σβηστής οθόνης τελείωσε.</string>
+    <string name="adb_screen_report_copy">Αντιγραφή αναφοράς σβηστής οθόνης</string>
+    <string name="adb_screen_report_copied">Η αναφορά σβηστής οθόνης αντιγράφηκε</string>
 </resources>

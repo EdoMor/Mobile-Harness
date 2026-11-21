@@ -50,4 +50,6 @@
     <string name="adb_pulse_dismiss_hint">Toca para cerrar</string>
     <string name="adb_screen_woke_reason">La pantalla se volvió a encender: %1$s</string>
     <string name="adb_screen_woke_sleep">El teléfono entró en reposo, así que terminó el modo de pantalla apagada.</string>
+    <string name="adb_screen_report_copy">Copiar informe de pantalla apagada</string>
+    <string name="adb_screen_report_copied">Informe de pantalla apagada copiado</string>
 </resources>

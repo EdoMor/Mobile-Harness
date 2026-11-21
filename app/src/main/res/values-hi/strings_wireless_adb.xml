@@ -50,4 +50,6 @@
     <string name="adb_pulse_dismiss_hint">बंद करने के लिए टैप करें</string>
     <string name="adb_screen_woke_reason">स्क्रीन फिर से चालू हो गई: %1$s</string>
     <string name="adb_screen_woke_sleep">फ़ोन स्लीप में चला गया, इसलिए स्क्रीन-बंद मोड खत्म हो गया।</string>
+    <string name="adb_screen_report_copy">स्क्रीन-बंद रिपोर्ट कॉपी करें</string>
+    <string name="adb_screen_report_copied">स्क्रीन-बंद रिपोर्ट कॉपी हो गई</string>
 </resources>
